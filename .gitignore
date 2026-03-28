@@ -1,0 +1,35 @@
+# Standard .gitignore patterns for .NET and Angular
+
+# .NET
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+*.user
+*.userosscache
+*.sln.doccallbacks.bak
+.vs/
+.vscode/
+*.swp
+*.bak
+*.cache
+*.temp
+*.tmp
+App_Data/
+node_modules/
+.DS_Store
+
+# Angular
+dist/
+tmp/
+out-tsc/
+bazel-out/
+.angular/
+
+# Environment
+.env
+.env.*
+! .env.example
+
+# OS files
+Thumbs.db
+desktop.ini
