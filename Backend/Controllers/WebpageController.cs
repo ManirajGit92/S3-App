@@ -22,7 +22,7 @@ namespace Backend.Controllers
         [HttpGet("default")]
         public async Task<IActionResult> GetDefaultWebpage()
         {
-            var adminEmail = "admin@s2app.com";
+            var adminEmail = "admin@s3app.com";
             var correctHash = "gqefEbSstSpkLvfjOd/OSqkv9l7S56twLXmNvhDsoLg="; // "123admin" in Base64
             
             var webpage = await _context.Webpages.Include(w => w.User).FirstOrDefaultAsync();
@@ -42,14 +42,14 @@ namespace Backend.Controllers
                 webpage = new Webpage
                 {
                     User = defaultUser,
-                    HeaderInfo = "S2 Digital Solutions",
+                    HeaderInfo = "S3 Digital Solutions",
                     MenuInfo = "[{\"label\":\"Home\",\"link\":\"#home\"},{\"label\":\"About\",\"link\":\"#about\"},{\"label\":\"Services\",\"link\":\"#services\"},{\"label\":\"Team\",\"link\":\"#teams\"},{\"label\":\"Contact\",\"link\":\"#contact\"}]",
-                    HomeSection = "<h1>Welcome to S2 Digital Solutions</h1><p>We craft innovative digital experiences that transform businesses. Our cutting-edge solutions help you stay ahead in the digital landscape.</p>",
-                    AboutUsSection = "<p>Founded with a passion for technology and innovation, S2 Digital Solutions has been delivering exceptional digital services for over a decade. Our team of experts combines creativity with technical excellence to deliver solutions that make a real difference.</p><p>We believe in building long-term partnerships with our clients, understanding their unique challenges, and delivering tailored solutions that exceed expectations.</p>",
+                    HomeSection = "<h1>Welcome to S3 Digital Solutions</h1><p>We craft innovative digital experiences that transform businesses. Our cutting-edge solutions help you stay ahead in the digital landscape.</p>",
+                    AboutUsSection = "<p>Founded with a passion for technology and innovation, S3 Digital Solutions has been delivering exceptional digital services for over a decade. Our team of experts combines creativity with technical excellence to deliver solutions that make a real difference.</p><p>We believe in building long-term partnerships with our clients, understanding their unique challenges, and delivering tailored solutions that exceed expectations.</p>",
                     ServicesProductsSection = "<p>From web development and mobile apps to cloud solutions and AI integration — we offer a comprehensive suite of digital services designed to accelerate your business growth.</p>",
                     TeamsSection = "<p>Our diverse team of designers, developers, and strategists work together to bring your vision to life. With expertise spanning across multiple domains, we ensure every project receives the attention it deserves.</p>",
-                    ContactUsSection = "<p>📧 contact@s2digital.com</p><p>📞 +91 98765 43210</p><p>📍 Chennai, Tamil Nadu, India</p>",
-                    FooterInfo = "© 2026 S2 Digital Solutions. All rights reserved. | Built with ❤️",
+                    ContactUsSection = "<p>📧 contact@s3digital.com</p><p>📞 +91 98765 43210</p><p>📍 Chennai, Tamil Nadu, India</p>",
+                    FooterInfo = "© 2026 S3 Digital Solutions. All rights reserved. | Built with ❤️",
                     AdditionalSections = "[]"
                 };
 
@@ -67,7 +67,7 @@ namespace Backend.Controllers
             {
                 // Fix existing webpage menu if it's minimal or uses old links
                 webpage.MenuInfo = "[{\"label\":\"Home\",\"link\":\"#home\"},{\"label\":\"About\",\"link\":\"#about\"},{\"label\":\"Services\",\"link\":\"#services\"},{\"label\":\"Team\",\"link\":\"#teams\"},{\"label\":\"Contact\",\"link\":\"#contact\"}]";
-                webpage.HeaderInfo = string.IsNullOrEmpty(webpage.HeaderInfo) ? "S2 Digital Solutions" : webpage.HeaderInfo;
+                webpage.HeaderInfo = string.IsNullOrEmpty(webpage.HeaderInfo) ? "S3 Digital Solutions" : webpage.HeaderInfo;
                 await _context.SaveChangesAsync();
             }
 

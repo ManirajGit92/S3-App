@@ -37,7 +37,7 @@ namespace Backend.Controllers
                 faqs = new List<FAQ>
                 {
                     new FAQ { Question = "What are your services?", Answer = "We offer web development, mobile apps, and UI/UX design." },
-                    new FAQ { Question = "How can I contact support?", Answer = "You can email us at support@s2app.com or call +91 98765 43210." },
+                    new FAQ { Question = "How can I contact support?", Answer = "You can email us at support@s3app.com or call +91 98765 43210." },
                     new FAQ { Question = "Where are you located?", Answer = "Our main office is in Chennai, Tamil Nadu, India." },
                     new FAQ { Question = "What is your pricing?", Answer = "Pricing varies by project. Contact us for a custom quote!" }
                 };
