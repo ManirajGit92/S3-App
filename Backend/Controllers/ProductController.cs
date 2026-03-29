@@ -88,16 +88,42 @@ namespace Backend.Controllers
         
         // POST api/product/buy
         [HttpPost("buy")]
-        public async Task<IActionResult> BuyProduct([FromBody] List<int> productIds)
+        public async Task<IActionResult> BuyProduct([FromBody] CheckoutRequest request)
         {
-            // Basic e-commerce logic mock: deduct quantity, increment sold
-            foreach(var id in productIds)
+            if (request.ProductIds.Count == 0) return BadRequest("No items in cart");
+
+            // Aggregate items to create one 'Sale' event but multiple SaleRecords
+            foreach(var id in request.ProductIds)
             {
                 var p = await _context.Products.FindAsync(id);
                 if(p != null && p.AvailableQuantity > 0)
                 {
                     p.AvailableQuantity -= 1;
                     p.SoldQuantity += 1;
+
+                    // Log SaleRecord
+                    _context.SaleRecords.Add(new SaleRecord {
+                        WebpageId = p.WebpageId,
+                        ProductId = p.Id,
+                        ProductName = p.ProductName,
+                        ProductCategory = p.ProductCategory,
+                        Quantity = 1,
+                        UnitPrice = p.Price,
+                        TotalPrice = p.Price,
+                        CustomerName = request.CustomerName,
+                        CustomerPhone = request.CustomerPhone,
+                        PaymentMethod = request.PaymentMethod,
+                        Timestamp = DateTime.UtcNow
+                    });
+
+                    // Log individual 'Sale' event for the dashboard charts
+                    _context.AnalyticsEvents.Add(new AnalyticsEvent {
+                        WebpageId = p.WebpageId,
+                        EventType = "Sale",
+                        Description = $"Sold: {p.ProductName}",
+                        Timestamp = DateTime.UtcNow,
+                        Details = $"{{\"price\": {p.Price}, \"product\": \"{p.ProductName}\"}}"
+                    });
                 }
             }
             await _context.SaveChangesAsync();

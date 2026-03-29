@@ -3,22 +3,24 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Api } from '../api';
+import { CartService } from '../services/cart.service';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-storefront',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './storefront.html',
   styleUrl: './storefront.css',
 })
 export class Storefront implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(Api);
+  public cartService = inject(CartService);
 
   // Core data
   webpageData = signal<any>(null);
   products = signal<any[]>([]);
-  cart = signal<any[]>([]);
   numericWebpageId = signal(0);
 
   // Loading states
@@ -38,17 +40,23 @@ export class Storefront implements OnInit {
   showCheckout = signal(false);
   checkoutStep = signal<'select' | 'details' | 'processing' | 'success'>('select');
   paymentMethod = signal<'upi' | 'cod' | 'netbanking'>('upi');
-  // UPI
-  upiId = signal('');
-  upiTxnId = signal('');
-  // Net Banking
-  bankName = signal('');
-  accountNo = signal('');
-  ifscCode = signal('');
+
   // Customer
   customerName = signal('');
   customerPhone = signal('');
   customerAddress = signal('');
+
+  // Payment details
+  upiId = signal('');
+  upiTxnId = signal('');
+  bankName = signal('');
+  accountNo = signal('');
+  ifscCode = signal('');
+
+  // Cart aliases for shorter template access
+  cart = this.cartService.cart;
+  cartTotal = this.cartService.cartTotal;
+  cartCount = this.cartService.cartCount;
 
   // Derived data from product list
   allCategories = computed(() => [...new Set(this.products().map((p: any) => p.productCategory).filter(Boolean))]);
@@ -84,10 +92,7 @@ export class Storefront implements OnInit {
     return list;
   });
 
-  cartTotal = computed(() =>
-    this.cart().reduce((sum, item) => sum + item.price * item.cartQty, 0)
-  );
-  cartCount = computed(() => this.cart().reduce((sum, item) => sum + item.cartQty, 0));
+
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
@@ -151,21 +156,22 @@ export class Storefront implements OnInit {
 
   // Cart
   addToCart(product: any) {
-    const cur = [...this.cart()];
-    const ex = cur.find(p => p.id === product.id);
-    if (ex) { if (ex.cartQty < product.availableQuantity) ex.cartQty++; }
-    else if (product.availableQuantity > 0) cur.push({ ...product, cartQty: 1 });
-    this.cart.set(cur);
+    this.cartService.addToCart(product);
   }
+
+  buyNow(product: any) {
+    this.cartService.addToCart(product);
+    this.openCheckout();
+  }
+
   updateCartQty(index: number, delta: number) {
-    const cur = [...this.cart()];
-    cur[index].cartQty = Math.max(1, Math.min(cur[index].cartQty + delta, cur[index].availableQuantity));
-    this.cart.set(cur);
+    const item = this.cart()[index];
+    if (item) this.cartService.updateQty(item.id, delta);
   }
+
   removeFromCart(index: number) {
-    const cur = [...this.cart()];
-    cur.splice(index, 1);
-    this.cart.set(cur);
+    const item = this.cart()[index];
+    if (item) this.cartService.removeFromCart(item.id);
   }
 
   // Checkout
@@ -200,12 +206,19 @@ export class Storefront implements OnInit {
     const idsToBuy: number[] = [];
     this.cart().forEach(item => { for (let i = 0; i < item.cartQty; i++) idsToBuy.push(item.id); });
 
-    this.api.buyProduct(idsToBuy).subscribe({
+    const checkoutData = {
+      productIds: idsToBuy,
+      customerName: this.customerName(),
+      customerPhone: this.customerPhone(),
+      paymentMethod: this.paymentMethod()
+    };
+
+    this.api.buyProduct(checkoutData).subscribe({
       next: () => {
         setTimeout(() => {
           this.isPurchasing.set(false);
           this.checkoutStep.set('success');
-          this.cart.set([]);
+          this.cartService.clearCart();
           this.loadProducts();
         }, 1800);
       },
@@ -216,8 +229,6 @@ export class Storefront implements OnInit {
   finishCheckout() {
     this.showCheckout.set(false);
     this.checkoutStep.set('select');
-    this.upiTxnId.set(''); this.upiId.set('');
-    this.bankName.set(''); this.accountNo.set(''); this.ifscCode.set('');
     this.customerName.set(''); this.customerPhone.set(''); this.customerAddress.set('');
   }
 

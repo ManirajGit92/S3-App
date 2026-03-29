@@ -1,0 +1,88 @@
+.analytics-wrapper {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+@media(max-width: 768px) {
+  .stats-grid { grid-template-columns: 1fr; }
+}
+
+.stat-card {
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  border: 1px solid var(--surface-border);
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.stat-icon.revenue { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
+.stat-icon.sales { background: rgba(52, 211, 153, 0.1); color: #34d399; }
+.stat-icon.visits { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+
+.stat-info h3 { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.stat-val { font-size: 1.75rem; font-weight: 700; color: #fff; }
+
+.charts-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.chart-header h4 { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; }
+
+.chart-box {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1.5rem;
+}
+
+@media(max-width: 1024px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+.mt-4 { margin-top: 2rem; }
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem;
+  gap: 1rem;
+  color: var(--text-muted);
+}

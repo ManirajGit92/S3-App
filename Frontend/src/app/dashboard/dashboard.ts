@@ -5,11 +5,12 @@ import { Api } from '../api';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FONT_FAMILIES, BG_FILTERS, BG_ANIMATIONS } from '../models/webpage.model';
+import { Analytics } from './analytics/analytics';
 // sample test
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, RouterModule, FormsModule],
+  imports: [ReactiveFormsModule, CommonModule, RouterModule, FormsModule, Analytics],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -23,7 +24,7 @@ export class Dashboard implements OnInit {
   saveMessage = signal('');
   username = signal('');
   email = signal('');
-  activeTab = signal('builder');
+  activeTab = signal<'builder' | 'faqs' | 'history' | 'security' | 'products' | 'analytics'>('builder');
 
   fontFamilies = FONT_FAMILIES;
   bgFilters = BG_FILTERS;
@@ -197,7 +198,7 @@ export class Dashboard implements OnInit {
     this.loadWebpage();
   }
 
-  setTab(tab: string) {
+  setTab(tab: 'builder' | 'faqs' | 'history' | 'security' | 'products' | 'analytics') {
     this.activeTab.set(tab);
     if (tab === 'faqs') this.loadFAQs();
     if (tab === 'history') this.loadHistory();

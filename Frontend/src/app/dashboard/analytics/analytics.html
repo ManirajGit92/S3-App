@@ -1,0 +1,73 @@
+<div class="analytics-wrapper">
+  
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="glass-panel stat-card">
+      <div class="stat-icon revenue">💰</div>
+      <div class="stat-info">
+        <h3>Total Revenue</h3>
+        <p class="stat-val">₹{{ summary().totalRevenue | number:'1.2-2' }}</p>
+      </div>
+    </div>
+    <div class="glass-panel stat-card">
+      <div class="stat-icon sales">📦</div>
+      <div class="stat-info">
+        <h3>Total Sales</h3>
+        <p class="stat-val">{{ summary().totalSales }}</p>
+      </div>
+    </div>
+    <div class="glass-panel stat-card">
+      <div class="stat-icon visits">👁️</div>
+      <div class="stat-info">
+        <h3>Total Visits</h3>
+        <p class="stat-val">{{ summary().totalVisits }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Area -->
+  <div class="charts-container" *ngIf="!isLoading()">
+    <div class="glass-panel chart-card full-width">
+      <div class="chart-header">
+        <h4>Revenue Trend (Last 30 Days)</h4>
+      </div>
+      <div class="chart-box">
+        <canvas #revenueChart></canvas>
+      </div>
+    </div>
+
+    <div class="grid-2 mt-4">
+      <div class="glass-panel chart-card">
+        <div class="chart-header">
+          <h4>Website Visits Traffic</h4>
+        </div>
+        <div class="chart-box">
+          <canvas #visitsChart></canvas>
+        </div>
+      </div>
+      <div class="glass-panel chart-card">
+        <div class="chart-header">
+          <h4>Sales by Product Category</h4>
+        </div>
+        <div class="chart-box">
+          <canvas #categoryChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-panel chart-card mt-4">
+      <div class="chart-header">
+        <h4>Top 5 Best Selling Products</h4>
+      </div>
+      <div class="chart-box">
+        <canvas #productsChart></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading()" class="loading-state">
+    <div class="mini-spinner"></div>
+    <span>Calculating analytics...</span>
+  </div>
+
+</div>

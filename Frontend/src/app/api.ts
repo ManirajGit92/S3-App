@@ -99,7 +99,16 @@ export class Api {
     return this.http.delete(`${this.apiUrl}/product/${id}`, { headers: this.getHeaders() });
   }
 
-  buyProduct(productIds: number[]): Observable<any> {
-    return this.http.post(`${this.apiUrl}/product/buy`, productIds);
+  buyProduct(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/product/buy`, data);
+  }
+
+  // Analytics
+  getAnalyticsSummary(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/analytics/summary`, { headers: this.getHeaders() });
+  }
+
+  getAnalyticsCharts(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/analytics/charts`, { headers: this.getHeaders() });
   }
 }

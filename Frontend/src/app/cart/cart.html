@@ -1,0 +1,175 @@
+<div class="cart-page-layout">
+  <!-- Header -->
+  <header class="cart-header glass-panel">
+    <div class="header-inner">
+      <a [routerLink]="['/store', numericWebpageId()]" class="back-link">← Back to Store</a>
+      <h1>Shopping Cart</h1>
+    </div>
+  </header>
+
+  <div *ngIf="isLoading()" class="loader-container">
+    <div class="spinner-ring"></div>
+  </div>
+
+  <main *ngIf="!isLoading()" class="cart-main">
+    <div class="container">
+      <div class="cart-grid">
+        <!-- Cart Items List -->
+        <div class="cart-items-section">
+          <div *ngIf="cart().length === 0" class="empty-state glass-panel">
+            <div class="empty-icon">🛒</div>
+            <h2>Your cart is empty</h2>
+            <p>Looks like you haven't added anything to your cart yet.</p>
+            <a [routerLink]="['/store', numericWebpageId()]" class="btn btn-primary">Go Shopping</a>
+          </div>
+
+          <div *ngIf="cart().length > 0" class="cart-items-list">
+            <div *ngFor="let item of cart()" class="cart-item glass-panel">
+              <div class="item-img-wrap">
+                <img *ngIf="item._spec?.imageUrl" [src]="item._spec.imageUrl" [alt]="item.productName">
+                <div *ngIf="!item._spec?.imageUrl" class="item-placeholder">🛍️</div>
+              </div>
+              <div class="item-info">
+                <h3 class="item-name">{{ item.productName }}</h3>
+                <p class="item-meta">{{ item.productCategory }} · {{ item._spec?.company }}</p>
+                <div class="item-price">₹{{ item.price | number:'1.2-2' }}</div>
+              </div>
+              <div class="item-qty">
+                <button (click)="updateQty(item.id, -1)" class="qty-btn" [disabled]="item.cartQty <= 1">−</button>
+                <span class="qty-val">{{ item.cartQty }}</span>
+                <button (click)="updateQty(item.id, 1)" class="qty-btn" [disabled]="item.cartQty >= item.availableQuantity">+</button>
+              </div>
+              <div class="item-total">
+                ₹{{ item.price * item.cartQty | number:'1.2-2' }}
+              </div>
+              <button (click)="removeItem(item.id)" class="remove-btn" title="Remove item">🗑️</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Summary Sidebar -->
+        <aside class="cart-summary-section" *ngIf="cart().length > 0">
+          <div class="summary-card glass-panel sticky-sidebar">
+            <h3>Order Summary</h3>
+            <div class="summary-row">
+              <span>Items ({{ cartCount() }})</span>
+              <span>₹{{ cartTotal() | number:'1.2-2' }}</span>
+            </div>
+            <div class="summary-row">
+              <span>Shipping</span>
+              <span class="free">FREE</span>
+            </div>
+            <div class="summary-total">
+              <span>Total Amount</span>
+              <span class="total-val">₹{{ cartTotal() | number:'1.2-2' }}</span>
+            </div>
+
+            <button *ngIf="!showCheckoutForm()" (click)="checkout()" class="btn btn-primary btn-lg full-width pulse-shadow">
+              Proceed to Checkout
+            </button>
+
+            <!-- Success Message -->
+            <div *ngIf="purchaseSuccess()" class="success-alert glass-panel">
+              <div class="success-icon">🎉</div>
+              <h3>Order Placed!</h3>
+              <p>Your order has been placed successfully.</p>
+              <button [routerLink]="['/store', numericWebpageId()]" class="btn btn-primary full-width">Continue Shopping</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Checkout Form (revealed when clicking Checkout) -->
+      <div id="checkout-form" *ngIf="showCheckoutForm() && cart().length > 0 && !purchaseSuccess()" class="checkout-form-section mt-5 fade-in">
+        <div class="glass-panel checkout-card">
+          <h2>Delivery & Payment</h2>
+          <div class="checkout-grid">
+            <!-- Left: Delivery Details -->
+            <div class="form-section">
+              <h3>Delivery Address</h3>
+              <div class="form-group">
+                <label>Full Name *</label>
+                <input type="text" [ngModel]="customerName()" (ngModelChange)="customerName.set($event)" class="form-control" placeholder="John Doe">
+              </div>
+              <div class="form-group">
+                <label>Phone Number *</label>
+                <input type="tel" [ngModel]="customerPhone()" (ngModelChange)="customerPhone.set($event)" class="form-control" placeholder="+91 98765 43210">
+              </div>
+              <div class="form-group">
+                <label>Shipping Address *</label>
+                <textarea [ngModel]="customerAddress()" (ngModelChange)="customerAddress.set($event)" rows="3" class="form-control" placeholder="House No, Street, City, Pincode"></textarea>
+              </div>
+            </div>
+
+            <!-- Right: Payment Selection -->
+            <div class="form-section">
+              <h3>Payment Method</h3>
+              <div class="payment-selector">
+                <label class="pm-option" [class.active]="paymentMethod() === 'upi'" (click)="paymentMethod.set('upi')">
+                  <span class="icon">📱</span>
+                  <div class="pm-meta">
+                    <strong>UPI</strong>
+                    <span>GPay/PhonePe/Paytm</span>
+                  </div>
+                  <input type="radio" name="pay" value="upi" [checked]="paymentMethod() === 'upi'">
+                </label>
+                <label class="pm-option" [class.active]="paymentMethod() === 'cod'" (click)="paymentMethod.set('cod')">
+                  <span class="icon">💵</span>
+                  <div class="pm-meta">
+                    <strong>COD</strong>
+                    <span>Cash on Delivery</span>
+                  </div>
+                  <input type="radio" name="pay" value="cod" [checked]="paymentMethod() === 'cod'">
+                </label>
+                <label class="pm-option" [class.active]="paymentMethod() === 'netbanking'" (click)="paymentMethod.set('netbanking')">
+                  <span class="icon">🏦</span>
+                  <div class="pm-meta">
+                    <strong>Net Banking</strong>
+                    <span>Online Transfer</span>
+                  </div>
+                  <input type="radio" name="pay" value="netbanking" [checked]="paymentMethod() === 'netbanking'">
+                </label>
+              </div>
+
+              <!-- Payment Details Section -->
+              <div class="mt-4 payment-details-area">
+                <div *ngIf="paymentMethod() === 'upi'" class="payment-box upi-box glass-panel anim-slide-in">
+                  <p>Scan & Pay to: <strong>admin@upi</strong></p>
+                  <div class="qr-mock">⬛⬛⬛</div>
+                  <div class="form-group mt-3">
+                    <label>Transaction ID *</label>
+                    <input type="text" [ngModel]="upiTxnId()" (ngModelChange)="upiTxnId.set($event)" class="form-control" placeholder="UTR/Reference No">
+                  </div>
+                </div>
+
+                <div *ngIf="paymentMethod() === 'netbanking'" class="payment-box bank-box glass-panel anim-slide-in">
+                  <div class="bank-row"><span>Bank:</span> <strong>S3 Store Bank</strong></div>
+                  <div class="bank-row"><span>Account:</span> <strong>1234 5678 9012</strong></div>
+                  <div class="bank-row"><span>IFSC:</span> <strong>S3BK00001</strong></div>
+                  <div class="form-group mt-3">
+                    <label>Reference No *</label>
+                    <input type="text" [ngModel]="bankName()" (ngModelChange)="bankName.set($event)" class="form-control" placeholder="Transfer ID">
+                  </div>
+                </div>
+
+                <div *ngIf="paymentMethod() === 'cod'" class="payment-box cod-box glass-panel anim-slide-in">
+                  <div class="cod-msg">
+                    <span class="msg-icon">📦</span>
+                    <p>Great! You'll pay **₹{{ cartTotal() | number:'1.2-2' }}** at the time of delivery.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="checkout-footer">
+            <button (click)="showCheckoutForm.set(false)" class="btn btn-outline" [disabled]="isPurchasing()">Cancel</button>
+            <button (click)="processOrder()" class="btn btn-primary btn-lg pulse-shadow" [disabled]="isPurchasing()">
+              {{ isPurchasing() ? 'Processing...' : 'Place Secure Order' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

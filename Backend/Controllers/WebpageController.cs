@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
+using Backend.Models;
 using System.Security.Claims;
 
 namespace Backend.Controllers
@@ -97,6 +98,14 @@ namespace Backend.Controllers
 
             var webpage = await _context.Webpages.FirstOrDefaultAsync(w => w.UserId == userId);
             if (webpage == null) return NotFound();
+
+            // Log Visit Analytics
+            _context.AnalyticsEvents.Add(new AnalyticsEvent {
+                WebpageId = webpage.Id,
+                EventType = "Visit",
+                Timestamp = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
 
             return Ok(webpage);
         }

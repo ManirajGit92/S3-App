@@ -17,10 +17,10 @@
         ☰ Filters
         <span *ngIf="filterCategories().length + filterCompanies().length > 0" class="filter-active-dot"></span>
       </button>
-      <button class="cart-btn" (click)="openCheckout()">
+      <a [routerLink]="['/cart', numericWebpageId()]" class="cart-btn">
         🛒 <span class="cart-count-badge">{{ cartCount() }}</span>
         <span class="cart-total-label">₹{{ cartTotal() | number:'1.2-2' }}</span>
-      </button>
+      </a>
     </div>
   </div>
 </header>
@@ -148,13 +148,49 @@
         <!-- Footer -->
         <div class="p-footer">
           <span class="p-price">₹{{ p.price | number:'1.2-2' }}</span>
-          <button class="add-to-cart-btn" [disabled]="p.availableQuantity === 0" (click)="addToCart(p)">
-            {{ p.availableQuantity === 0 ? 'Sold Out' : '+ Cart' }}
-          </button>
+          <div class="p-actions">
+            <button class="buy-now-btn" [disabled]="p.availableQuantity === 0" (click)="buyNow(p)">
+              Buy Now
+            </button>
+            <button class="add-to-cart-btn" [disabled]="p.availableQuantity === 0" (click)="addToCart(p)">
+              + Cart
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Persistent Right Cart Panel (Desktop) -->
+  <aside class="cart-side-panel glass-panel" *ngIf="cartCount() > 0">
+    <div class="side-cart-header">
+      <h3>Your Cart</h3>
+      <span class="cart-count-badge">{{ cartCount() }}</span>
+    </div>
+
+    <div class="side-cart-items">
+      <div *ngFor="let item of cart(); let i = index" class="side-item">
+        <div class="side-item-info">
+          <h4>{{ item.productName }}</h4>
+          <p>₹{{ item.price | number:'1.2-2' }} × {{ item.cartQty }}</p>
+        </div>
+        <button class="ci-remove" (click)="removeFromCart(i)">✕</button>
+      </div>
+    </div>
+
+    <div class="side-cart-footer">
+      <div class="side-total">
+        <span>Total</span>
+        <span>₹{{ cartTotal() | number:'1.2-2' }}</span>
+      </div>
+      <button class="btn btn-primary full-width pulse-shadow" (click)="openCheckout()">
+        Checkout →
+      </button>
+      <a [routerLink]="['/cart', numericWebpageId()]" class="btn btn-outline full-width mt-2 text-center">
+        View Full Cart
+      </a>
+    </div>
+  </aside>
 
 </div>
 
