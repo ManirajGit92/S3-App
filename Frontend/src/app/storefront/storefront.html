@@ -1,118 +1,330 @@
-<div class="store-layout" *ngIf="!isLoading() && webpageData()">
-  
-  <header class="store-header glass-panel">
+<!-- Header -->
+<header class="store-header" *ngIf="webpageData()">
+  <div class="header-inner">
     <div class="store-brand">
-      <a [href]="'/page/' + webpageData().user?.webpageUniqueId" class="back-link">← Back to {{ webpageData().headerInfo || 'Site' }}</a>
-      <h2>Storefront</h2>
+      <a href="/" class="back-link">← {{ webpageData()?.headerInfo || 'Back to Site' }}</a>
+      <h1>Shop</h1>
     </div>
-    
-    <div class="store-controls">
-      <input type="text" class="search-input" placeholder="Search products..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" (keyup.enter)="onSearch()">
-      <button class="btn btn-primary" (click)="onSearch()">Search</button>
-      
-      <select class="sort-select" [ngModel]="sortBy()" (change)="onSortChange($event)">
-        <option value="">Sort: Newest</option>
-        <option value="price_asc">Price: Low to High</option>
-        <option value="price_desc">Price: High to Low</option>
-      </select>
-    </div>
-  </header>
 
-  <div class="store-main">
-    <!-- Products Grid -->
-    <div class="products-container">
-      <div *ngIf="products().length === 0" class="empty-state glass-panel">
-        No products found.
+    <div class="header-search">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search products..." class="header-search-input"
+             [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)">
+    </div>
+
+    <div class="header-actions">
+      <button class="filter-toggle-btn" (click)="showFilterSidebar.set(!showFilterSidebar())" title="Toggle Filters">
+        ☰ Filters
+        <span *ngIf="filterCategories().length + filterCompanies().length > 0" class="filter-active-dot"></span>
+      </button>
+      <button class="cart-btn" (click)="openCheckout()">
+        🛒 <span class="cart-count-badge">{{ cartCount() }}</span>
+        <span class="cart-total-label">₹{{ cartTotal() | number:'1.2-2' }}</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Loading -->
+<div *ngIf="isLoading()" class="loader-fullpage">
+  <div class="spinner-ring"></div>
+  <p>Loading products...</p>
+</div>
+
+<!-- Main Store Body -->
+<div class="store-body" *ngIf="!isLoading()">
+
+  <!-- Filter Sidebar -->
+  <aside class="filter-sidebar glass-panel" [class.collapsed]="!showFilterSidebar()">
+    <div class="filter-header">
+      <h3>Filters</h3>
+      <button class="clear-btn" *ngIf="filterCategories().length || filterCompanies().length || filterInStockOnly()" (click)="clearFilters()">
+        Clear all
+      </button>
+    </div>
+
+    <!-- Sort -->
+    <div class="filter-group">
+      <h4>Sort By</h4>
+      <div class="sort-options">
+        <label *ngFor="let opt of [
+          {v:'', l:'Newest First'},
+          {v:'price_asc', l:'Price: Low → High'},
+          {v:'price_desc', l:'Price: High → Low'},
+          {v:'name_asc', l:'Name: A → Z'},
+          {v:'name_desc', l:'Name: Z → A'}
+        ]" class="radio-option">
+          <input type="radio" name="sort" [value]="opt.v" [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event)">
+          <span>{{ opt.l }}</span>
+        </label>
       </div>
+    </div>
 
-      <div class="product-grid">
-        <div *ngFor="let p of products()" class="product-card glass-panel">
-          
-          <!-- Product Image -->
-          <div class="p-image-wrapper">
-            <img *ngIf="p._spec?.imageUrl" [src]="p._spec.imageUrl" [alt]="p.productName" class="p-image">
-            <div *ngIf="!p._spec?.imageUrl" class="p-image-placeholder">🛍️</div>
-          </div>
+    <!-- In Stock Toggle -->
+    <div class="filter-group">
+      <label class="toggle-wrap">
+        <input type="checkbox" [ngModel]="filterInStockOnly()" (ngModelChange)="filterInStockOnly.set($event)">
+        <span class="toggle-slider"></span>
+        <span class="toggle-text">In Stock Only</span>
+      </label>
+    </div>
 
-          <div class="p-card-top">
-            <div class="p-category-row">
-              <span class="p-category">{{ p.productCategory || 'Product' }}</span>
-              <span *ngIf="getSubcategory(p)" class="p-subcategory">{{ getSubcategory(p) }}</span>
-            </div>
-            <h3 class="p-name">{{ p.productName }}</h3>
-            <div *ngIf="getCompany(p)" class="p-company">🏭 {{ getCompany(p) }}</div>
-            <p class="p-desc" *ngIf="p.description">{{ p.description }}</p>
+    <!-- Price Range -->
+    <div class="filter-group" *ngIf="maxProductPrice() > 0">
+      <h4>Max Price</h4>
+      <input type="range" class="price-slider" min="0" [max]="maxProductPrice()"
+             [ngModel]="filterMaxPrice()" (ngModelChange)="filterMaxPrice.set($event)">
+      <div class="price-labels">
+        <span>₹0</span>
+        <span class="price-val">₹{{ filterMaxPrice() | number:'1.0-0' }}</span>
+        <span>₹{{ maxProductPrice() | number:'1.0-0' }}</span>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="filter-group" *ngIf="allCategories().length > 0">
+      <h4>Category</h4>
+      <label *ngFor="let cat of allCategories()" class="check-option" [class.checked]="filterCategories().includes(cat)">
+        <input type="checkbox" [checked]="filterCategories().includes(cat)" (change)="toggleCategory(cat)">
+        <span class="check-label">{{ cat }}</span>
+        <span class="check-count">{{ countProductsByCategory(cat) }}</span>
+      </label>
+    </div>
+
+    <!-- Brand / Company -->
+    <div class="filter-group" *ngIf="allCompanies().length > 0">
+      <h4>Brand</h4>
+      <label *ngFor="let co of allCompanies()" class="check-option" [class.checked]="filterCompanies().includes(co)">
+        <input type="checkbox" [checked]="filterCompanies().includes(co)" (change)="toggleCompany(co)">
+        <span class="check-label">{{ co }}</span>
+      </label>
+    </div>
+  </aside>
+
+  <!-- Products Area -->
+  <div class="products-area">
+    <div class="products-toolbar">
+      <span class="result-count">{{ filteredProducts().length }} product{{ filteredProducts().length !== 1 ? 's' : '' }}</span>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredProducts().length === 0" class="empty-state glass-panel">
+      <div class="empty-icon">🔍</div>
+      <h3>No products found</h3>
+      <p>Try adjusting your filters or search term</p>
+      <button class="btn btn-primary" (click)="clearFilters()">Clear Filters</button>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="product-grid">
+      <div *ngFor="let p of filteredProducts()" class="product-card glass-panel">
+        <!-- Image -->
+        <div class="p-image-wrapper">
+          <img *ngIf="p._spec?.imageUrl" [src]="p._spec.imageUrl" [alt]="p.productName" class="p-image">
+          <div *ngIf="!p._spec?.imageUrl" class="p-image-placeholder">🛍️</div>
+          <span *ngIf="p.availableQuantity > 0 && p.availableQuantity <= 5" class="low-stock-badge">Low Stock</span>
+          <span *ngIf="p.availableQuantity === 0" class="out-stock-badge">Sold Out</span>
+        </div>
+
+        <!-- Card Body -->
+        <div class="p-card-body">
+          <div class="p-chips">
+            <span class="chip cat">{{ p.productCategory }}</span>
+            <span *ngIf="getSubcategory(p)" class="chip sub">{{ getSubcategory(p) }}</span>
           </div>
-          
-          <!-- Custom Specs -->
+          <h3 class="p-name">{{ p.productName }}</h3>
+          <div *ngIf="getCompany(p)" class="p-company">{{ getCompany(p) }}</div>
+          <p *ngIf="p.description" class="p-desc">{{ p.description }}</p>
+
+          <!-- Specs -->
           <div *ngIf="getCustomSpecs(p).length > 0" class="p-specs">
             <div *ngFor="let s of getCustomSpecs(p)" class="p-spec-row">
               <span class="spec-key">{{ s.key }}</span>
               <span class="spec-val">{{ s.value }}</span>
             </div>
           </div>
-          
-          <div class="p-footer">
-            <div>
-              <span class="p-price">₹{{ p.price | number:'1.2-2' }}</span>
-              <span class="p-stock" [class.low-stock]="p.availableQuantity > 0 && p.availableQuantity <= 5" [class.out-stock]="p.availableQuantity === 0">
-                {{ p.availableQuantity > 0 ? p.availableQuantity + ' in stock' : 'Out of Stock' }}
-              </span>
-            </div>
-          </div>
+        </div>
 
-          <button class="btn btn-primary full-width mt-2" 
-                  [disabled]="p.availableQuantity === 0" 
-                  (click)="addToCart(p)">
-            {{ p.availableQuantity === 0 ? 'Sold Out' : 'Add to Cart' }}
+        <!-- Footer -->
+        <div class="p-footer">
+          <span class="p-price">₹{{ p.price | number:'1.2-2' }}</span>
+          <button class="add-to-cart-btn" [disabled]="p.availableQuantity === 0" (click)="addToCart(p)">
+            {{ p.availableQuantity === 0 ? 'Sold Out' : '+ Cart' }}
           </button>
         </div>
       </div>
     </div>
-
-    <!-- Cart Sidebar -->
-    <aside class="cart-sidebar glass-panel">
-      <div class="cart-header">
-        <h3>Your Cart</h3>
-        <span class="cart-count">{{ cart().length }} items</span>
-      </div>
-
-      <div class="cart-items">
-        <div *ngIf="cart().length === 0" class="empty-cart text-muted">
-          Your cart is empty.
-        </div>
-
-        <div *ngFor="let item of cart(); let i = index" class="cart-item">
-          <div class="ci-info">
-            <h4>{{ item.productName }}</h4>
-            <div class="ci-meta">
-              <span>Qty: {{ item.cartQty }}</span>
-              <span>${{ item.price * item.cartQty | number:'1.2-2' }}</span>
-            </div>
-          </div>
-          <button class="btn-remove" (click)="removeFromCart(i)">✕</button>
-        </div>
-      </div>
-
-      <div class="cart-summary" *ngIf="cart().length > 0">
-        <div class="total-row">
-          <span>Total</span>
-          <span class="total-val">${{ cartTotal() | number:'1.2-2' }}</span>
-        </div>
-        
-        <button class="btn btn-primary btn-lg full-width pulse-shadow" 
-                (click)="buyNow()" [disabled]="isPurchasing()">
-          {{ isPurchasing() ? 'Processing...' : 'Secure Checkout' }}
-        </button>
-      </div>
-
-      <div class="alert-success mt-3" *ngIf="purchaseSuccess()">
-        Purchase successful! Thank you.
-      </div>
-    </aside>
   </div>
+
 </div>
 
-<div *ngIf="isLoading()" class="loader-container full-page">
-  <span class="loader"></span>
+<!-- ===== FLOATING CART BUTTON (mobile) ===== -->
+<button class="floating-cart-btn" *ngIf="cartCount() > 0 && !showCheckout()" (click)="openCheckout()">
+  🛒 {{ cartCount() }} · ₹{{ cartTotal() | number:'1.0-0' }}
+</button>
+
+<!-- ===== CHECKOUT MODAL ===== -->
+<div class="checkout-overlay" *ngIf="showCheckout()" (click)="closeCheckout()"></div>
+<div class="checkout-modal glass-panel" *ngIf="showCheckout()">
+
+  <!-- Step: select + customer info -->
+  <div *ngIf="checkoutStep() === 'select'">
+    <div class="modal-header">
+      <h2>Checkout</h2>
+      <button class="modal-close" (click)="closeCheckout()">✕</button>
+    </div>
+
+    <!-- Cart summary -->
+    <div class="checkout-cart-summary">
+      <div *ngFor="let item of cart(); let i = index" class="checkout-item">
+        <img *ngIf="item._spec?.imageUrl" [src]="item._spec.imageUrl" class="ci-img" [alt]="item.productName">
+        <div *ngIf="!item._spec?.imageUrl" class="ci-img-placeholder">🛍️</div>
+        <div class="ci-info">
+          <span class="ci-name">{{ item.productName }}</span>
+          <span class="ci-price">₹{{ item.price | number:'1.2-2' }} × {{ item.cartQty }}</span>
+        </div>
+        <div class="ci-qty-controls">
+          <button (click)="updateCartQty(i, -1)">−</button>
+          <span>{{ item.cartQty }}</span>
+          <button (click)="updateCartQty(i, 1)">+</button>
+        </div>
+        <button class="ci-remove" (click)="removeFromCart(i)">✕</button>
+      </div>
+    </div>
+
+    <div class="checkout-total-row">
+      <span>Order Total</span>
+      <strong>₹{{ cartTotal() | number:'1.2-2' }}</strong>
+    </div>
+
+    <!-- Customer Details -->
+    <div class="checkout-section">
+      <h3>Delivery Details</h3>
+      <div class="checkout-form-grid">
+        <input type="text" class="co-input" placeholder="Full Name *"
+               [ngModel]="customerName()" (ngModelChange)="customerName.set($event)">
+        <input type="tel" class="co-input" placeholder="Phone Number *"
+               [ngModel]="customerPhone()" (ngModelChange)="customerPhone.set($event)">
+        <input type="text" class="co-input full" placeholder="Delivery Address"
+               [ngModel]="customerAddress()" (ngModelChange)="customerAddress.set($event)">
+      </div>
+    </div>
+
+    <!-- Payment Method Selection -->
+    <div class="checkout-section">
+      <h3>Payment Method</h3>
+      <div class="payment-methods">
+        <label class="payment-option" [class.selected]="paymentMethod() === 'upi'" (click)="paymentMethod.set('upi')">
+          <div class="pm-icon">📱</div>
+          <div class="pm-info">
+            <strong>UPI</strong>
+            <span>GPay, PhonePe, Paytm</span>
+          </div>
+          <input type="radio" name="pm" value="upi" [checked]="paymentMethod() === 'upi'">
+        </label>
+        <label class="payment-option" [class.selected]="paymentMethod() === 'cod'" (click)="paymentMethod.set('cod')">
+          <div class="pm-icon">💵</div>
+          <div class="pm-info">
+            <strong>Cash on Delivery</strong>
+            <span>Pay when delivered</span>
+          </div>
+          <input type="radio" name="pm" value="cod" [checked]="paymentMethod() === 'cod'">
+        </label>
+        <label class="payment-option" [class.selected]="paymentMethod() === 'netbanking'" (click)="paymentMethod.set('netbanking')">
+          <div class="pm-icon">🏦</div>
+          <div class="pm-info">
+            <strong>Net Banking</strong>
+            <span>NEFT / RTGS / IMPS</span>
+          </div>
+          <input type="radio" name="pm" value="netbanking" [checked]="paymentMethod() === 'netbanking'">
+        </label>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-lg full-width" (click)="proceedToDetails()">
+      Proceed to Payment →
+    </button>
+  </div>
+
+  <!-- Step: payment details -->
+  <div *ngIf="checkoutStep() === 'details'">
+    <div class="modal-header">
+      <button class="back-btn" (click)="checkoutStep.set('select')">← Back</button>
+      <h2>{{ paymentMethod() === 'upi' ? 'UPI Payment' : paymentMethod() === 'cod' ? 'Cash on Delivery' : 'Net Banking' }}</h2>
+      <button class="modal-close" (click)="closeCheckout()">✕</button>
+    </div>
+
+    <!-- UPI Details -->
+    <div *ngIf="paymentMethod() === 'upi'" class="payment-details-body">
+      <div class="upi-qr-box">
+        <div class="upi-qr-placeholder">
+          <div class="qr-icon">⬛</div>
+          <p class="qr-hint">Scan QR Code</p>
+        </div>
+        <div class="upi-divider">OR</div>
+        <div class="upi-id-display">
+          <span class="upi-label">Pay to UPI ID:</span>
+          <span class="upi-value">admin@upi</span>
+          <button class="copy-btn" (click)="upiId.set('admin@upi')">Copy</button>
+        </div>
+      </div>
+      <div class="upi-amount-display">Amount: <strong>₹{{ cartTotal() | number:'1.2-2' }}</strong></div>
+      <div class="form-group mt-3">
+        <label>UPI Transaction ID (after payment)</label>
+        <input type="text" class="co-input full" placeholder="e.g. 412345678901"
+               [ngModel]="upiTxnId()" (ngModelChange)="upiTxnId.set($event)">
+      </div>
+    </div>
+
+    <!-- COD Details -->
+    <div *ngIf="paymentMethod() === 'cod'" class="payment-details-body cod-body">
+      <div class="cod-icon">💵</div>
+      <h3>Pay on Delivery</h3>
+      <p>You will pay <strong>₹{{ cartTotal() | number:'1.2-2' }}</strong> when your order is delivered to:</p>
+      <div class="cod-address glass-panel">
+        <p><strong>{{ customerName() }}</strong></p>
+        <p>{{ customerPhone() }}</p>
+        <p *ngIf="customerAddress()">{{ customerAddress() }}</p>
+      </div>
+      <p class="cod-note">Please keep exact change ready for a smooth delivery experience.</p>
+    </div>
+
+    <!-- Net Banking Details -->
+    <div *ngIf="paymentMethod() === 'netbanking'" class="payment-details-body">
+      <div class="bank-details-box glass-panel">
+        <h4>Transfer to Account</h4>
+        <div class="bank-detail-row"><span>Account Name</span><strong>S3 Digital Store</strong></div>
+        <div class="bank-detail-row"><span>Account No.</span><strong>1234 5678 9012</strong></div>
+        <div class="bank-detail-row"><span>IFSC</span><strong>SBIN0001234</strong></div>
+        <div class="bank-detail-row"><span>Amount</span><strong class="bank-amount">₹{{ cartTotal() | number:'1.2-2' }}</strong></div>
+      </div>
+      <div class="checkout-form-grid mt-3">
+        <input type="text" class="co-input" placeholder="Your Bank Name *"
+               [ngModel]="bankName()" (ngModelChange)="bankName.set($event)">
+        <input type="text" class="co-input" placeholder="Transaction / Reference No. *"
+               [ngModel]="accountNo()" (ngModelChange)="accountNo.set($event)">
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-lg full-width mt-3" (click)="processPayment()">
+      {{ paymentMethod() === 'cod' ? '✅ Confirm Order' : '✅ I have completed the payment' }}
+    </button>
+  </div>
+
+  <!-- Step: processing -->
+  <div *ngIf="checkoutStep() === 'processing'" class="processing-body">
+    <div class="processing-spinner"></div>
+    <h3>Processing your order...</h3>
+    <p>Please wait a moment</p>
+  </div>
+
+  <!-- Step: success -->
+  <div *ngIf="checkoutStep() === 'success'" class="success-body">
+    <div class="success-icon">🎉</div>
+    <h2>Order Confirmed!</h2>
+    <p>Thank you, <strong>{{ customerName() || 'Customer' }}</strong>!</p>
+    <p class="success-detail">{{ paymentMethod() === 'cod' ? 'Your order will be delivered soon. Pay on arrival.' : 'Payment received. Your order is being processed.' }}</p>
+    <button class="btn btn-primary btn-lg mt-3" (click)="finishCheckout()">Continue Shopping</button>
+  </div>
+
 </div>
