@@ -18,6 +18,7 @@ export class Storefront implements OnInit {
   webpageData = signal<any>(null);
   products = signal<any[]>([]);
   cart = signal<any[]>([]);
+  numericWebpageId = signal(0); // tracks the numeric DB id for product queries
   
   isLoading = signal(true);
   isPurchasing = signal(false);
@@ -33,11 +34,24 @@ export class Storefront implements OnInit {
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
-      if (id) {
-        // First get webpage to get the numeric ID and store details
+      if (!id) return;
+
+      // If the param is a plain number, load directly by numeric webpage ID
+      const numericId = parseInt(id, 10);
+      if (!isNaN(numericId) && String(numericId) === id) {
+        this.numericWebpageId.set(numericId);
+        // Fetch the webpage by numeric id to populate header/back-link
+        this.api.getDefaultWebpage().subscribe({
+          next: (data) => { this.webpageData.set(data); },
+          error: () => {}
+        });
+        this.loadProducts();
+      } else {
+        // UUID path — original behaviour
         this.api.getPublicWebpage(id).subscribe({
           next: (data) => {
             this.webpageData.set(data);
+            this.numericWebpageId.set(data.id);
             this.loadProducts();
           },
           error: () => this.isLoading.set(false)
@@ -48,8 +62,8 @@ export class Storefront implements OnInit {
 
   loadProducts() {
     this.isLoading.set(true);
-    const wId = this.webpageData()?.id;
-    if(!wId) return;
+    const wId = this.numericWebpageId();
+    if (!wId) return;
 
     this.api.getProducts(wId, this.searchQuery(), this.sortBy()).subscribe({
       next: (data) => {

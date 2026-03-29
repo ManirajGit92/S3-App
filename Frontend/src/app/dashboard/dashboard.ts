@@ -138,8 +138,13 @@ export class Dashboard implements OnInit {
     company: [''],
     description: [''],
     isHidden: [false],
+    imageUrl: [''],
     specs: this.fb.array([])
   });
+
+  isUploadingImage = signal(false);
+  productImagePreview = signal('');
+  imageInputMode = signal<'upload' | 'url'>('upload');
 
   get specControls() { return this.productForm.get('specs') as FormArray; }
   addSpec() { this.specControls.push(this.fb.group({ key: [''], value: [''] })); }
@@ -387,7 +392,9 @@ export class Dashboard implements OnInit {
   startNewProduct() {
     this.editingProduct.set(null);
     this.specControls.clear();
-    this.productForm.reset({ id: 0, price: 0, availableQuantity: 0, isHidden: false });
+    this.productImagePreview.set('');
+    this.imageInputMode.set('upload');
+    this.productForm.reset({ id: 0, price: 0, availableQuantity: 0, isHidden: false, imageUrl: '' });
   }
 
   editProduct(product: any) {
@@ -404,10 +411,55 @@ export class Dashboard implements OnInit {
       availableQuantity: product.availableQuantity,
       company: spec.company || '',
       description: product.description,
-      isHidden: spec.isHidden || false
+      isHidden: spec.isHidden || false,
+      imageUrl: spec.imageUrl || ''
     });
+    this.productImagePreview.set(spec.imageUrl || '');
+    // If an existing image is stored as URL, default to URL mode
+    this.imageInputMode.set(spec.imageUrl ? 'url' : 'upload');
     const customSpecs = spec.specs || [];
     customSpecs.forEach((s: any) => this.specControls.push(this.fb.group({ key: [s.key], value: [s.value] })));
+  }
+
+  onImageFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    // Validate on client side too
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Unsupported file type. Please upload JPG, PNG, WEBP, GIF, or SVG.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File is too large. Max size is 5 MB.');
+      return;
+    }
+    // Show local preview immediately
+    const reader = new FileReader();
+    reader.onload = (e) => this.productImagePreview.set(e.target?.result as string);
+    reader.readAsDataURL(file);
+    // Upload to backend
+    this.isUploadingImage.set(true);
+    this.api.uploadImage(file).subscribe({
+      next: (res) => {
+        this.productForm.patchValue({ imageUrl: res.url });
+        this.isUploadingImage.set(false);
+        this.showToast('Image uploaded successfully!');
+      },
+      error: () => {
+        this.isUploadingImage.set(false);
+        this.productImagePreview.set('');
+        alert('Image upload failed. Please try again.');
+      }
+    });
+  }
+
+  /** Called when the user types/pastes a direct image URL */
+  onImageUrlInput(url: string) {
+    const trimmed = url.trim();
+    this.productForm.patchValue({ imageUrl: trimmed });
+    this.productImagePreview.set(trimmed);
   }
 
   buildProductPayload(): any {
@@ -416,6 +468,7 @@ export class Dashboard implements OnInit {
       subcategory: val.subcategory || '',
       company: val.company || '',
       isHidden: val.isHidden || false,
+      imageUrl: val.imageUrl || '',
       specs: (val.specs || []).filter((s: any) => s.key)
     });
     return {

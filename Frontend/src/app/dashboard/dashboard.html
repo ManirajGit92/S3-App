@@ -363,6 +363,68 @@
               <textarea formControlName="description" rows="2" class="form-control" placeholder="Short product description..."></textarea>
             </div>
 
+            <!-- Image: dual-mode upload or URL -->
+            <div class="form-group">
+              <div class="image-mode-header">
+                <label>Product Image</label>
+                <div class="image-mode-toggle">
+                  <button type="button"
+                          [class.active]="imageInputMode() === 'upload'"
+                          (click)="imageInputMode.set('upload')">
+                    📁 Upload File
+                  </button>
+                  <button type="button"
+                          [class.active]="imageInputMode() === 'url'"
+                          (click)="imageInputMode.set('url')">
+                    🔗 Enter URL
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mode: Upload File -->
+              <div *ngIf="imageInputMode() === 'upload'">
+                <div class="image-upload-area" [class.has-image]="productImagePreview()">
+                  <div *ngIf="productImagePreview()" class="image-preview-wrapper">
+                    <img [src]="productImagePreview()" alt="Product preview" class="image-preview">
+                    <button type="button" class="image-remove-btn"
+                            (click)="productImagePreview.set(''); productForm.patchValue({imageUrl: ''})">✕</button>
+                  </div>
+                  <div *ngIf="!productImagePreview()" class="image-drop-zone">
+                    <span class="upload-icon">🖼️</span>
+                    <p>Click to browse an image from your device</p>
+                    <small class="text-muted">JPG, PNG, WEBP, GIF, SVG · Max 5 MB</small>
+                  </div>
+                  <div *ngIf="isUploadingImage()" class="upload-spinner-overlay">
+                    <span class="mini-spinner"></span>
+                    <span>Uploading...</span>
+                  </div>
+                  <input type="file" accept="image/*" class="image-file-input"
+                         (change)="onImageFileSelected($event)"
+                         [disabled]="isUploadingImage()">
+                </div>
+              </div>
+
+              <!-- Mode: Enter URL -->
+              <div *ngIf="imageInputMode() === 'url'" class="url-input-group">
+                <input type="url" class="form-control"
+                       placeholder="https://example.com/product.jpg"
+                       [value]="productForm.value.imageUrl || ''"
+                       (input)="onImageUrlInput($any($event.target).value)">
+                <div *ngIf="productImagePreview()" class="url-preview-wrap">
+                  <img [src]="productImagePreview()" alt="Preview" class="image-preview-sm"
+                       (error)="productImagePreview.set(''); productForm.patchValue({imageUrl: ''})">
+                  <button type="button" class="image-remove-btn url-remove"
+                          (click)="productImagePreview.set(''); productForm.patchValue({imageUrl: ''})">✕</button>
+                </div>
+                <small class="text-muted mt-1 d-block">Paste any public image URL — it will be saved directly.</small>
+              </div>
+
+              <input type="hidden" formControlName="imageUrl">
+              <small *ngIf="productForm.value.imageUrl && !isUploadingImage()" class="url-preview text-muted">
+                ✅ Image URL ready · <a [href]="productForm.value.imageUrl" target="_blank">Open ↗</a>
+              </small>
+            </div>
+
             <div class="toggle-row form-group">
               <label class="toggle-label">
                 <input type="checkbox" formControlName="isHidden">
@@ -428,6 +490,11 @@
             <!-- Product Rows -->
             <div class="product-rows">
               <div *ngFor="let p of filteredProducts()" class="product-row-item glass-panel" [class.hidden-product]="isProductHidden(p)">
+                <!-- Thumbnail -->
+                <div class="product-row-thumb">
+                  <img *ngIf="getSpec(p, 'imageUrl')" [src]="getSpec(p, 'imageUrl')" [alt]="p.productName" class="row-thumb-img">
+                  <div *ngIf="!getSpec(p, 'imageUrl')" class="row-thumb-placeholder">🛍️</div>
+                </div>
                 <div class="product-row-info">
                   <div class="product-row-name">
                     {{ p.productName }}

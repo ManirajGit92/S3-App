@@ -316,3 +316,28 @@
 .spec-val { color: var(--text-main); font-weight: 500; }
 
 .p-stock.out-stock { color: var(--error); }
+
+/* Product Image on Storefront Cards */
+.p-image-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  background: rgba(255,255,255,0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.p-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.product-card:hover .p-image { transform: scale(1.04); }
+.p-image-placeholder {
+  font-size: 3rem;
+  opacity: 0.3;
+}

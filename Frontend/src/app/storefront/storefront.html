@@ -28,6 +28,12 @@
       <div class="product-grid">
         <div *ngFor="let p of products()" class="product-card glass-panel">
           
+          <!-- Product Image -->
+          <div class="p-image-wrapper">
+            <img *ngIf="p._spec?.imageUrl" [src]="p._spec.imageUrl" [alt]="p.productName" class="p-image">
+            <div *ngIf="!p._spec?.imageUrl" class="p-image-placeholder">🛍️</div>
+          </div>
+
           <div class="p-card-top">
             <div class="p-category-row">
               <span class="p-category">{{ p.productCategory || 'Product' }}</span>

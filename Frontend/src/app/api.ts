@@ -56,6 +56,15 @@ export class Api {
     return this.http.delete(`${this.apiUrl}/chat/faqs/${id}`, { headers: this.getHeaders() });
   }
 
+  uploadImage(file: File): Observable<{ url: string }> {
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('file', file);
+    // No Content-Type header — browser sets multipart boundary automatically
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return this.http.post<{ url: string }>(`${this.apiUrl}/upload/image`, formData, { headers });
+  }
+
   // Security Endpoints
   updateProfile(data: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/auth/profile`, data, { headers: this.getHeaders() });
