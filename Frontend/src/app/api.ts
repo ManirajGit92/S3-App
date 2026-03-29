@@ -103,6 +103,10 @@ export class Api {
     return this.http.post(`${this.apiUrl}/product/buy`, data);
   }
 
+  bulkCreateProducts(products: any[]): Observable<any> {
+    return this.http.post(`${this.apiUrl}/product/bulk`, products, { headers: this.getHeaders() });
+  }
+
   // Analytics
   getAnalyticsSummary(): Observable<any> {
     return this.http.get(`${this.apiUrl}/analytics/summary`, { headers: this.getHeaders() });

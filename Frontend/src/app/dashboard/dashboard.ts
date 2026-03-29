@@ -6,6 +6,7 @@ import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FONT_FAMILIES, BG_FILTERS, BG_ANIMATIONS } from '../models/webpage.model';
 import { Analytics } from './analytics/analytics';
+import * as XLSX from 'xlsx';
 // sample test
 @Component({
   selector: 'app-dashboard',
@@ -29,6 +30,54 @@ export class Dashboard implements OnInit {
   fontFamilies = FONT_FAMILIES;
   bgFilters = BG_FILTERS;
   bgAnimations = BG_ANIMATIONS;
+
+  // Products State
+  products = signal<any[]>([]);
+  pendingProducts = signal<any[]>([]);
+  isLoadingProducts = signal(false);
+  editingProduct = signal<any>(null);
+  
+  productForm = this.fb.group({
+    id: [0],
+    productName: ['', Validators.required],
+    productCategory: ['', Validators.required],
+    subcategory: [''],
+    price: [0, [Validators.required, Validators.min(0)]],
+    availableQuantity: [0, [Validators.required, Validators.min(0)]],
+    company: [''],
+    description: [''],
+    isHidden: [false],
+    imageUrl: [''],
+    specs: this.fb.array([])
+  });
+
+  imageInputMode = signal<'upload' | 'url'>('upload');
+  productImagePreview = signal<string>('');
+  isUploadingImage = signal(false);
+  webpageId = signal(0);
+
+  // Product Filters
+  productSearch = signal('');
+  productCategoryFilter = signal('');
+  productSortBy = signal('');
+
+  displayProducts = computed(() => {
+    let list = [...this.products(), ...this.pendingProducts().map(p => ({ ...p, isPending: true }))];
+    const q = this.productSearch().toLowerCase();
+    const cat = this.productCategoryFilter();
+    const sort = this.productSortBy();
+
+    if (q) list = list.filter(p => p.productName?.toLowerCase().includes(q) || p.productCategory?.toLowerCase().includes(q));
+    if (cat) list = list.filter(p => p.productCategory === cat);
+
+    if (sort === 'price_asc') list.sort((a, b) => a.price - b.price);
+    else if (sort === 'price_desc') list.sort((a, b) => b.price - a.price);
+    else if (sort === 'name_asc') list.sort((a, b) => a.productName.localeCompare(b.productName));
+    else list.sort((a, b) => b.id - a.id);
+    return list;
+  });
+
+  productCategories = computed(() => [...new Set(this.products().map(p => p.productCategory))]);
 
   // Webpage Builder
   builderForm = this.fb.group({
@@ -97,55 +146,7 @@ export class Dashboard implements OnInit {
     });
   }
 
-  // Products
-  products = signal<any[]>([]);
-  editingProduct = signal<any>(null);
-  productSearch = signal('');
-  productSortBy = signal('');
-  productCategoryFilter = signal('');
-  webpageId = signal(0);
-  isLoadingProducts = signal(false);
 
-  productCategories = computed(() => {
-    const cats = new Set(this.products().map((p: any) => p.productCategory).filter(Boolean));
-    return Array.from(cats);
-  });
-
-  filteredProducts = computed(() => {
-    let list = this.products();
-    const q = this.productSearch().toLowerCase();
-    const cat = this.productCategoryFilter();
-    if (q) list = list.filter((p: any) =>
-      p.productName?.toLowerCase().includes(q) ||
-      p.productCategory?.toLowerCase().includes(q) ||
-      this.getSpec(p, 'subcategory')?.toLowerCase().includes(q) ||
-      this.getSpec(p, 'company')?.toLowerCase().includes(q)
-    );
-    if (cat) list = list.filter((p: any) => p.productCategory === cat);
-    const sort = this.productSortBy();
-    if (sort === 'price_asc') list = [...list].sort((a, b) => a.price - b.price);
-    else if (sort === 'price_desc') list = [...list].sort((a, b) => b.price - a.price);
-    else if (sort === 'name_asc') list = [...list].sort((a, b) => a.productName.localeCompare(b.productName));
-    return list;
-  });
-
-  productForm = this.fb.group({
-    id: [0],
-    productName: ['', Validators.required],
-    productCategory: ['', Validators.required],
-    subcategory: [''],
-    price: [0, [Validators.required, Validators.min(0)]],
-    availableQuantity: [0, Validators.required],
-    company: [''],
-    description: [''],
-    isHidden: [false],
-    imageUrl: [''],
-    specs: this.fb.array([])
-  });
-
-  isUploadingImage = signal(false);
-  productImagePreview = signal('');
-  imageInputMode = signal<'upload' | 'url'>('upload');
 
   get specControls() { return this.productForm.get('specs') as FormArray; }
   addSpec() { this.specControls.push(this.fb.group({ key: [''], value: [''] })); }
@@ -303,7 +304,9 @@ export class Dashboard implements OnInit {
       }
     } else {
       cGroup?.get('htmlContent')?.setValue(data.contactUsSection);
-    }    this.menuInfo.clear();
+    }
+    
+    this.menuInfo.clear();
     this.additionalSections.clear();
     try {
       if (data.menuInfo) {
@@ -387,6 +390,83 @@ export class Dashboard implements OnInit {
     this.api.getProducts(wId).subscribe({
       next: (data) => { this.products.set(data); this.isLoadingProducts.set(false); },
       error: () => this.isLoadingProducts.set(false)
+    });
+  }
+
+  // --- Excel Import/Export ---
+  exportToExcel() {
+    const data = this.products().map(p => {
+      let spec: any = {};
+      try { spec = JSON.parse(p.otherSpec || '{}'); } catch {}
+      return {
+        'Product Name': p.productName,
+        'Category': p.productCategory,
+        'Subcategory': spec.subcategory || '',
+        'Price': p.price,
+        'Stock': p.availableQuantity,
+        'Brand': spec.company || '',
+        'Description': p.description,
+        'Image URL': spec.imageUrl || ''
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Products');
+    XLSX.writeFile(wb, 'Products_Export.xlsx');
+  }
+
+  onImportExcel(event: any) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const json: any[] = XLSX.utils.sheet_to_json(sheet);
+
+      const imported = json.map(row => {
+        const spec = {
+          subcategory: row['Subcategory'] || '',
+          company: row['Brand'] || '',
+          imageUrl: row['Image URL'] || '',
+          isHidden: false,
+          specs: []
+        };
+        return {
+          id: 0,
+          webpageId: this.webpageId(),
+          productName: row['Product Name'] || 'New Product',
+          productCategory: row['Category'] || 'General',
+          price: parseFloat(row['Price']) || 0,
+          availableQuantity: parseInt(row['Stock']) || 0,
+          description: row['Description'] || '',
+          otherSpec: JSON.stringify(spec)
+        };
+      });
+      this.pendingProducts.set(imported);
+      this.showToast(`${imported.length} products imported for preview.`);
+    };
+    reader.readAsArrayBuffer(file);
+    // Reset input
+    event.target.value = '';
+  }
+
+  savePendingProducts() {
+    if (this.pendingProducts().length === 0) return;
+    this.isSaving.set(true);
+    this.api.bulkCreateProducts(this.pendingProducts()).subscribe({
+      next: (res) => {
+        this.isSaving.set(false);
+        this.products.set([...this.products(), ...res.products]);
+        this.pendingProducts.set([]);
+        this.showToast('All pending products saved successfully!');
+      },
+      error: () => {
+        this.isSaving.set(false);
+        alert('Failed to save products.');
+      }
     });
   }
 

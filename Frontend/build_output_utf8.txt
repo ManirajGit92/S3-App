@@ -1,0 +1,32 @@
+﻿[33mΓ¥»[39m Building...
+[32mΓ£ö[39m Building...
+Application bundle generation failed. [20.536 seconds] - 2026-03-29T11:56:27.367Z
+
+node.exe : [1m[31m[31mX 
+[41;31m[[41;97mERROR[41;31m][0m [1mTS2339: Property 
+'filteredProducts' does not exist on type 
+'Dashboard'.[0m [1m[35m[plugin angular-compiler][0m
+At C:\Users\DEVA\AppData\Roaming\npm\npx.ps1:24 char:5
++     & "node$exe"  
+"$basedir/node_modules/npm/bin/npx-cli.js" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([1m[31m[3 
+   1mX...r-compiler][0m:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+    src/app/dashboard/dashboard.html:501:48:
+[37m      501 Γöé ...isLoadingProducts() && 
+[32mfilteredProducts[37m().length === 0" class=...
+          Γò╡                           
+[32m~~~~~~~~~~~~~~~~[0m
+
+  Error occurs in the template of component Dashboard.
+
+    src/app/dashboard/dashboard.ts:15:15:
+[37m      15 Γöé   templateUrl: 
+[32m'./dashboard.html'[37m,
+         Γò╡                [32m~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m

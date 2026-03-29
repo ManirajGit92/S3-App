@@ -463,8 +463,19 @@
         <div class="product-list-panel">
           <div class="glass-panel section-card">
             <div class="header-row mb-4">
-              <h3>All Products ({{ filteredProducts().length }})</h3>
-              <span class="text-muted sm">Total: {{ products().length }} items</span>
+              <h3>All Products ({{ displayProducts().length }})</h3>
+              <div class="header-actions-group">
+                <button type="button" class="btn-inline secondary" (click)="exportToExcel()" [disabled]="products().length === 0">
+                  📥 Export
+                </button>
+                <button type="button" class="btn-inline primary" (click)="excelInput.click()">
+                  📤 Import
+                </button>
+                <input type="file" #excelInput hidden (change)="onImportExcel($event)" accept=".xlsx, .xls, .csv">
+                <button *ngIf="pendingProducts().length > 0" type="button" class="btn btn-primary pulse-shadow" (click)="savePendingProducts()" [disabled]="isSaving()">
+                  💾 Save {{ pendingProducts().length }} Pending
+                </button>
+              </div>
             </div>
 
             <!-- Filters -->
@@ -487,13 +498,13 @@
             <div *ngIf="isLoadingProducts()" class="text-muted">Loading products...</div>
 
             <!-- Empty State -->
-            <div *ngIf="!isLoadingProducts() && filteredProducts().length === 0" class="empty-state-sm text-muted">
+            <div *ngIf="!isLoadingProducts() && displayProducts().length === 0" class="empty-state-sm text-muted">
               No products found. Add your first product using the form.
             </div>
 
             <!-- Product Rows -->
             <div class="product-rows">
-              <div *ngFor="let p of filteredProducts()" class="product-row-item glass-panel" [class.hidden-product]="isProductHidden(p)">
+              <div *ngFor="let p of displayProducts()" class="product-row-item glass-panel" [class.hidden-product]="isProductHidden(p)" [class.pending-row]="p.isPending">
                 <!-- Thumbnail -->
                 <div class="product-row-thumb">
                   <img *ngIf="getSpec(p, 'imageUrl')" [src]="getSpec(p, 'imageUrl')" [alt]="p.productName" class="row-thumb-img">
@@ -503,6 +514,7 @@
                   <div class="product-row-name">
                     {{ p.productName }}
                     <span *ngIf="isProductHidden(p)" class="hidden-badge">Hidden</span>
+                    <span *ngIf="p.isPending" class="pending-badge">Pending</span>
                   </div>
                   <div class="product-row-meta">
                     <span class="meta-chip">{{ p.productCategory }}</span>
