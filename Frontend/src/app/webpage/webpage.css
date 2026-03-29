@@ -140,6 +140,58 @@
   padding: 5rem 2rem;
 }
 
+/* Contact Grid */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+  text-align: left;
+}
+
+@media (min-width: 768px) {
+  .contact-grid { grid-template-columns: 1fr 1.5fr; }
+}
+
+.contact-info {
+  padding: 2.5rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-border);
+}
+
+.contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.contact-item .icon {
+  font-size: 1.25rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  background: rgba(255,255,255,0.05);
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+}
+
+.contact-item p, .contact-item a {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-main);
+  text-decoration: none;
+  word-break: break-word;
+  align-self: center;
+}
+
+.contact-item a:hover {
+  text-decoration: underline;
+  color: var(--primary);
+}
+
 /* Animations */
 [data-animation="fade-in"] {
   animation: fadeInEffect 1.5s ease-out forwards;

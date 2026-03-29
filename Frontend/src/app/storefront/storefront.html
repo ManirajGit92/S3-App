@@ -27,15 +27,32 @@
 
       <div class="product-grid">
         <div *ngFor="let p of products()" class="product-card glass-panel">
-          <div class="p-category">{{ p.productCategory || 'Product' }}</div>
-          <h3 class="p-name">{{ p.productName }}</h3>
-          <p class="p-desc">{{ p.description }}</p>
+          
+          <div class="p-card-top">
+            <div class="p-category-row">
+              <span class="p-category">{{ p.productCategory || 'Product' }}</span>
+              <span *ngIf="getSubcategory(p)" class="p-subcategory">{{ getSubcategory(p) }}</span>
+            </div>
+            <h3 class="p-name">{{ p.productName }}</h3>
+            <div *ngIf="getCompany(p)" class="p-company">🏭 {{ getCompany(p) }}</div>
+            <p class="p-desc" *ngIf="p.description">{{ p.description }}</p>
+          </div>
+          
+          <!-- Custom Specs -->
+          <div *ngIf="getCustomSpecs(p).length > 0" class="p-specs">
+            <div *ngFor="let s of getCustomSpecs(p)" class="p-spec-row">
+              <span class="spec-key">{{ s.key }}</span>
+              <span class="spec-val">{{ s.value }}</span>
+            </div>
+          </div>
           
           <div class="p-footer">
-            <span class="p-price">${{ p.price }}</span>
-            <span class="p-stock" [class.low-stock]="p.availableQuantity <= 5">
-              {{ p.availableQuantity > 0 ? p.availableQuantity + ' in stock' : 'Out of Stock' }}
-            </span>
+            <div>
+              <span class="p-price">₹{{ p.price | number:'1.2-2' }}</span>
+              <span class="p-stock" [class.low-stock]="p.availableQuantity > 0 && p.availableQuantity <= 5" [class.out-stock]="p.availableQuantity === 0">
+                {{ p.availableQuantity > 0 ? p.availableQuantity + ' in stock' : 'Out of Stock' }}
+              </span>
+            </div>
           </div>
 
           <button class="btn btn-primary full-width mt-2" 

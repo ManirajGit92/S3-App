@@ -53,12 +53,24 @@ export class Storefront implements OnInit {
 
     this.api.getProducts(wId, this.searchQuery(), this.sortBy()).subscribe({
       next: (data) => {
-        this.products.set(data);
+        // Parse OtherSpec and filter hidden products
+        const parsed = data
+          .map((p: any) => {
+            let spec: any = {};
+            try { spec = JSON.parse(p.otherSpec || '{}'); } catch {}
+            return { ...p, _spec: spec };
+          })
+          .filter((p: any) => !p._spec.isHidden);
+        this.products.set(parsed);
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)
     });
   }
+
+  getSubcategory(p: any): string { return p._spec?.subcategory || ''; }
+  getCompany(p: any): string { return p._spec?.company || ''; }
+  getCustomSpecs(p: any): { key: string; value: string }[] { return p._spec?.specs || []; }
 
   onSearch() {
     this.loadProducts();

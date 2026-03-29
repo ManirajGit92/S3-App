@@ -45,15 +45,15 @@ export class Api {
   }
 
   getChatHistory(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/chat/history`);
+    return this.http.get<any[]>(`${this.apiUrl}/chat/history`, { headers: this.getHeaders() });
   }
 
   manageFAQ(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/chat/faqs`, data);
+    return this.http.post(`${this.apiUrl}/chat/faqs`, data, { headers: this.getHeaders() });
   }
 
   deleteFAQ(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/chat/faqs/${id}`);
+    return this.http.delete(`${this.apiUrl}/chat/faqs/${id}`, { headers: this.getHeaders() });
   }
 
   // Security Endpoints

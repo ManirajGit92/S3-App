@@ -1,14 +1,15 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { FormBuilder, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { FormBuilder, FormArray, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Api } from '../api';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { FONT_FAMILIES, BG_FILTERS, BG_ANIMATIONS } from '../models/webpage.model';
 // sample test
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, RouterModule],
+  imports: [ReactiveFormsModule, CommonModule, RouterModule, FormsModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -32,14 +33,30 @@ export class Dashboard implements OnInit {
   builderForm = this.fb.group({
     headerInfo: [''],
     menuInfo: this.fb.array([]),
-    homeSection: [''],
-    aboutUsSection: [''],
-    servicesProductsSection: [''],
-    teamsSection: [''],
-    contactUsSection: [''],
+    homeGroup: this.createCoreSectionForm(),
+    aboutGroup: this.createCoreSectionForm(),
+    servicesGroup: this.createCoreSectionForm(),
+    teamsGroup: this.createCoreSectionForm(),
+    contactGroup: this.fb.group({
+      htmlContent: [''],
+      background: this.fb.group({ url: [''], filter: ['none'], animation: ['none'] }),
+      overlays: this.fb.array([]),
+      address: [''],
+      email: [''],
+      phone: [''],
+      mapUrl: ['']
+    }),
     footerInfo: [''],
     additionalSections: this.fb.array([])
   });
+
+  createCoreSectionForm() {
+    return this.fb.group({
+      htmlContent: [''],
+      background: this.fb.group({ url: [''], filter: ['none'], animation: ['none'] }),
+      overlays: this.fb.array([])
+    });
+  }
 
   // Section Form Factory
   createSectionForm(title = '', content = '') {
@@ -77,6 +94,66 @@ export class Dashboard implements OnInit {
       fontFamily: [o?.fontFamily || 'Outfit'],
       fontStyle: [o?.fontStyle || 'normal']
     });
+  }
+
+  // Products
+  products = signal<any[]>([]);
+  editingProduct = signal<any>(null);
+  productSearch = signal('');
+  productSortBy = signal('');
+  productCategoryFilter = signal('');
+  webpageId = signal(0);
+  isLoadingProducts = signal(false);
+
+  productCategories = computed(() => {
+    const cats = new Set(this.products().map((p: any) => p.productCategory).filter(Boolean));
+    return Array.from(cats);
+  });
+
+  filteredProducts = computed(() => {
+    let list = this.products();
+    const q = this.productSearch().toLowerCase();
+    const cat = this.productCategoryFilter();
+    if (q) list = list.filter((p: any) =>
+      p.productName?.toLowerCase().includes(q) ||
+      p.productCategory?.toLowerCase().includes(q) ||
+      this.getSpec(p, 'subcategory')?.toLowerCase().includes(q) ||
+      this.getSpec(p, 'company')?.toLowerCase().includes(q)
+    );
+    if (cat) list = list.filter((p: any) => p.productCategory === cat);
+    const sort = this.productSortBy();
+    if (sort === 'price_asc') list = [...list].sort((a, b) => a.price - b.price);
+    else if (sort === 'price_desc') list = [...list].sort((a, b) => b.price - a.price);
+    else if (sort === 'name_asc') list = [...list].sort((a, b) => a.productName.localeCompare(b.productName));
+    return list;
+  });
+
+  productForm = this.fb.group({
+    id: [0],
+    productName: ['', Validators.required],
+    productCategory: ['', Validators.required],
+    subcategory: [''],
+    price: [0, [Validators.required, Validators.min(0)]],
+    availableQuantity: [0, Validators.required],
+    company: [''],
+    description: [''],
+    isHidden: [false],
+    specs: this.fb.array([])
+  });
+
+  get specControls() { return this.productForm.get('specs') as FormArray; }
+  addSpec() { this.specControls.push(this.fb.group({ key: [''], value: [''] })); }
+  removeSpec(i: number) { this.specControls.removeAt(i); }
+
+  getSpec(product: any, key: string): string {
+    try {
+      const spec = JSON.parse(product.otherSpec || '{}');
+      return spec[key] || '';
+    } catch { return ''; }
+  }
+
+  isProductHidden(product: any): boolean {
+    try { return JSON.parse(product.otherSpec || '{}').isHidden === true; } catch { return false; }
   }
 
   // FAQs
@@ -119,6 +196,7 @@ export class Dashboard implements OnInit {
     this.activeTab.set(tab);
     if (tab === 'faqs') this.loadFAQs();
     if (tab === 'history') this.loadHistory();
+    if (tab === 'products') this.loadProducts();
   }
 
   // --- Webpage Builder Methods ---
@@ -126,6 +204,7 @@ export class Dashboard implements OnInit {
     this.isLoading.set(true);
     this.api.getMyWebpage().subscribe({
       next: (data) => {
+        this.webpageId.set(data.id);
         this.populateForm(data);
         this.isLoading.set(false);
       },
@@ -160,18 +239,65 @@ export class Dashboard implements OnInit {
     this.getOverlays(sectionIndex).removeAt(overlayIndex);
   }
 
+  // Generic Overlay Methods for Template usage
+  getFormArray(group: any, name: string): FormArray {
+    return group.get(name) as FormArray;
+  }
+  addGenericOverlay(group: any) {
+    this.getFormArray(group, 'overlays').push(this.createOverlayForm());
+  }
+  removeGenericOverlay(group: any, index: number) {
+    this.getFormArray(group, 'overlays').removeAt(index);
+  }
+
+  private parseCoreSection(formGroup: any, dataString: string) {
+    if (dataString && dataString.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(dataString);
+        formGroup.patchValue({
+          htmlContent: parsed.htmlContent || '',
+          background: parsed.background || { url: '', filter: 'none', animation: 'none' }
+        });
+        const overlaysArr = formGroup.get('overlays') as FormArray;
+        overlaysArr.clear();
+        if (parsed.overlays) {
+          parsed.overlays.forEach((o: any) => overlaysArr.push(this.createOverlayForm(o)));
+        }
+        return;
+      } catch (e) {}
+    }
+    // Fallback: entire string is htmlContent
+    formGroup.patchValue({ htmlContent: dataString || '' });
+    (formGroup.get('overlays') as FormArray).clear();
+  }
+
   private populateForm(data: any) {
     this.builderForm.patchValue({
       headerInfo: data.headerInfo,
       footerInfo: data.footerInfo,
-      // We will treat main content sections as legacy for now or just empty if they use additionalSections
-      homeSection: data.homeSection,
-      aboutUsSection: data.aboutUsSection,
-      servicesProductsSection: data.servicesProductsSection,
-      teamsSection: data.teamsSection,
-      contactUsSection: data.contactUsSection,
     });
-    this.menuInfo.clear();
+    
+    this.parseCoreSection(this.builderForm.get('homeGroup'), data.homeSection);
+    this.parseCoreSection(this.builderForm.get('aboutGroup'), data.aboutUsSection);
+    this.parseCoreSection(this.builderForm.get('servicesGroup'), data.servicesProductsSection);
+    this.parseCoreSection(this.builderForm.get('teamsGroup'), data.teamsSection);
+
+    // Parse Contact Information
+    const cGroup = this.builderForm.get('contactGroup');
+    if (data.contactUsSection && data.contactUsSection.startsWith('{')) {
+      try {
+        this.parseCoreSection(cGroup, data.contactUsSection);
+        const contactData = JSON.parse(data.contactUsSection);
+        cGroup?.get('address')?.setValue(contactData.address || '');
+        cGroup?.get('email')?.setValue(contactData.email || '');
+        cGroup?.get('phone')?.setValue(contactData.phone || '');
+        cGroup?.get('mapUrl')?.setValue(contactData.mapUrl || '');
+      } catch (e) {
+        cGroup?.get('htmlContent')?.setValue(data.contactUsSection);
+      }
+    } else {
+      cGroup?.get('htmlContent')?.setValue(data.contactUsSection);
+    }    this.menuInfo.clear();
     this.additionalSections.clear();
     try {
       if (data.menuInfo) {
@@ -202,8 +328,14 @@ export class Dashboard implements OnInit {
     });
 
     const payload = {
-      ...val,
+      headerInfo: val.headerInfo,
+      footerInfo: val.footerInfo,
       menuInfo: JSON.stringify(val.menuInfo),
+      homeSection: JSON.stringify(val.homeGroup),
+      aboutUsSection: JSON.stringify(val.aboutGroup),
+      servicesProductsSection: JSON.stringify(val.servicesGroup),
+      teamsSection: JSON.stringify(val.teamsGroup),
+      contactUsSection: JSON.stringify(val.contactGroup),
       additionalSections: JSON.stringify(processedAdditional)
     };
 
@@ -238,6 +370,96 @@ export class Dashboard implements OnInit {
   deleteFAQ(id: number) {
     if (confirm('Delete this FAQ?')) {
       this.api.deleteFAQ(id).subscribe(() => this.loadFAQs());
+    }
+  }
+
+  // --- Product Management Methods ---
+  loadProducts() {
+    const wId = this.webpageId();
+    if (!wId) return;
+    this.isLoadingProducts.set(true);
+    this.api.getProducts(wId).subscribe({
+      next: (data) => { this.products.set(data); this.isLoadingProducts.set(false); },
+      error: () => this.isLoadingProducts.set(false)
+    });
+  }
+
+  startNewProduct() {
+    this.editingProduct.set(null);
+    this.specControls.clear();
+    this.productForm.reset({ id: 0, price: 0, availableQuantity: 0, isHidden: false });
+  }
+
+  editProduct(product: any) {
+    this.editingProduct.set(product);
+    this.specControls.clear();
+    let spec: any = {};
+    try { spec = JSON.parse(product.otherSpec || '{}'); } catch {}
+    this.productForm.patchValue({
+      id: product.id,
+      productName: product.productName,
+      productCategory: product.productCategory,
+      subcategory: spec.subcategory || '',
+      price: product.price,
+      availableQuantity: product.availableQuantity,
+      company: spec.company || '',
+      description: product.description,
+      isHidden: spec.isHidden || false
+    });
+    const customSpecs = spec.specs || [];
+    customSpecs.forEach((s: any) => this.specControls.push(this.fb.group({ key: [s.key], value: [s.value] })));
+  }
+
+  buildProductPayload(): any {
+    const val = this.productForm.value as any;
+    const otherSpec = JSON.stringify({
+      subcategory: val.subcategory || '',
+      company: val.company || '',
+      isHidden: val.isHidden || false,
+      specs: (val.specs || []).filter((s: any) => s.key)
+    });
+    return {
+      id: val.id || 0,
+      webpageId: this.webpageId(),
+      productName: val.productName,
+      productCategory: val.productCategory,
+      price: val.price,
+      availableQuantity: val.availableQuantity,
+      description: val.description || '',
+      otherSpec
+    };
+  }
+
+  onSaveProduct() {
+    if (!this.productForm.valid) return;
+    const payload = this.buildProductPayload();
+    const isEdit = payload.id > 0;
+    const obs = isEdit
+      ? this.api.updateProduct(payload.id, payload)
+      : this.api.createProduct(payload);
+    obs.subscribe({
+      next: () => {
+        this.loadProducts();
+        this.startNewProduct();
+        this.showToast(isEdit ? 'Product updated!' : 'Product created!');
+      }
+    });
+  }
+
+  toggleHideProduct(product: any) {
+    let spec: any = {};
+    try { spec = JSON.parse(product.otherSpec || '{}'); } catch {}
+    spec.isHidden = !spec.isHidden;
+    const updated = { ...product, otherSpec: JSON.stringify(spec) };
+    this.api.updateProduct(product.id, updated).subscribe(() => this.loadProducts());
+  }
+
+  deleteProduct(id: number) {
+    if (confirm('Are you sure you want to delete this product?')) {
+      this.api.deleteProduct(id).subscribe(() => {
+        this.loadProducts();
+        this.showToast('Product deleted.');
+      });
     }
   }
 

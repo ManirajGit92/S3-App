@@ -3,7 +3,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Api } from '../api';
 import { CommonModule } from '@angular/common';
 import { SettingsService } from '../services/settings.service';
-import { SiteHeader } from '../site-header/site-header';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-webpage',
@@ -15,11 +15,17 @@ import { SiteHeader } from '../site-header/site-header';
 export class Webpage implements OnInit {
   private route = inject(ActivatedRoute);
   private api = inject(Api);
+  private sanitizer = inject(DomSanitizer);
   settings = inject(SettingsService);
 
   webpageData = signal<any>(null);
   menuItems = signal<any[]>([]);
   additionalSections = signal<any[]>([]);
+  contactData = signal<any>(null);
+  homeData = signal<any>(null);
+  aboutData = signal<any>(null);
+  servicesData = signal<any>(null);
+  teamsData = signal<any>(null);
   isLoading = signal(true);
   error = signal('');
 
@@ -33,6 +39,18 @@ export class Webpage implements OnInit {
         this.loadWebpage(this.api.getDefaultWebpage());
       }
     });
+  }
+
+  private parseCoreData(dataString: string, targetSignal: any) {
+    if (dataString && dataString.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(dataString);
+        targetSignal.set(parsed);
+        return;
+      } catch (e) {}
+    }
+    // Fallback creates an object with `htmlContent` wrapping the raw text
+    targetSignal.set({ htmlContent: dataString });
   }
 
   private loadWebpage(source: any) {
@@ -53,6 +71,24 @@ export class Webpage implements OnInit {
           });
           this.additionalSections.set(processed);
         } catch (e) { }
+
+        // Parse Core Sections
+        this.parseCoreData(data.homeSection, this.homeData);
+        this.parseCoreData(data.aboutUsSection, this.aboutData);
+        this.parseCoreData(data.servicesProductsSection, this.servicesData);
+        this.parseCoreData(data.teamsSection, this.teamsData);
+
+        // Parse Contact Data
+        if (data.contactUsSection && data.contactUsSection.startsWith('{')) {
+          try {
+            const parsedContact = JSON.parse(data.contactUsSection);
+            if (parsedContact && parsedContact.mapUrl) {
+              parsedContact.safeMapUrl = this.sanitizer.bypassSecurityTrustResourceUrl(parsedContact.mapUrl);
+            }
+            this.contactData.set(parsedContact);
+          } catch (e) {}
+        }
+
         this.isLoading.set(false);
 
         // Update the site header with menu items from this webpage

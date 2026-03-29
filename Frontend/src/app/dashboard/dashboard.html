@@ -22,6 +22,10 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
         Chat history
       </button>
+      <button [class.active]="activeTab() === 'products'" (click)="setTab('products')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        Products
+      </button>
       <button [class.active]="activeTab() === 'security'" (click)="setTab('security')">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Security
@@ -151,14 +155,121 @@
           </div>
         </div>
 
-        <div class="glass-panel section-card legacy-card" *ngIf="false">
-          <h3>Legacy Sections (Advanced HTML)</h3>
-          <p class="text-muted sm">Legacy fields for direct HTML editing. Use with caution.</p>
-          <div class="form-group">
-            <label>Hero Section</label>
-            <textarea formControlName="homeSection" rows="2" class="form-control"></textarea>
+        <!-- Template for Core Sections Editor -->
+        <ng-template #coreSectionEditor let-group="group" let-title="title" let-isContact="isContact">
+          <div class="glass-panel section-card" [formGroup]="$any(group)">
+            <div class="header-row">
+              <h3>{{ title }} Settings</h3>
+            </div>
+            
+            <div class="form-group mb-4">
+              <label>HTML / Text Content (Priority)</label>
+              <textarea formControlName="htmlContent" rows="3" class="form-control" placeholder="Enter HTML content or text..."></textarea>
+            </div>
+
+            <!-- Background Settings -->
+            <div class="settings-group" formGroupName="background">
+              <h4>Background Settings</h4>
+              <div class="grid-3">
+                <div class="form-group">
+                  <label>Image URL</label>
+                  <input type="text" formControlName="url" placeholder="https://..." class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Filter Effect</label>
+                  <select formControlName="filter" class="form-control">
+                    <option *ngFor="let f of bgFilters" [value]="f.value">{{ f.label }}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Scroll Animation</label>
+                  <select formControlName="animation" class="form-control">
+                    <option *ngFor="let a of bgAnimations" [value]="a.value">{{ a.label }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Text Overlays -->
+            <div class="settings-group">
+              <div class="header-row">
+                <h4>Text Overlays</h4>
+                <button type="button" (click)="addGenericOverlay(group)" class="btn-inline sm">+ Add Text</button>
+              </div>
+              
+              <div formArrayName="overlays" class="overlays-list">
+                <div *ngFor="let ov of getFormArray(group, 'overlays').controls; let j=index" [formGroupName]="j" class="overlay-item-row">
+                  <div class="overlay-main">
+                    <input type="text" formControlName="text" placeholder="Enter text here..." class="form-control">
+                  </div>
+                  <div class="overlay-settings grid-4">
+                    <div class="form-group">
+                      <label>Size (px)</label>
+                      <input type="number" formControlName="fontSize" class="form-control sm">
+                    </div>
+                    <div class="form-group">
+                      <label>Color</label>
+                      <input type="color" formControlName="color" class="form-control sm color-picker">
+                    </div>
+                    <div class="form-group">
+                      <label>Font Family</label>
+                      <select formControlName="fontFamily" class="form-control sm">
+                        <option *ngFor="let font of fontFamilies" [value]="font">{{ font }}</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Style</label>
+                      <select formControlName="fontStyle" class="form-control sm">
+                        <option value="normal">Normal</option>
+                        <option value="italic">Italic</option>
+                        <option value="bold">Bold</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="button" (click)="removeGenericOverlay(group, j)" class="btn-remove-sm">×</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact Page Specifics -->
+            <div *ngIf="isContact" class="contact-settings-wrapper mt-4">
+              <h4 class="mb-4" style="color:var(--primary)">Contact Layout Details</h4>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>Google Maps Embed URL (src)</label>
+                  <input type="text" formControlName="mapUrl" class="form-control" placeholder="https://www.google.com/maps/embed?...">
+                </div>
+                <div class="form-group">
+                  <label>Contact Email</label>
+                  <input type="email" formControlName="email" class="form-control" placeholder="contact@business.com">
+                </div>
+              </div>
+              <div class="grid-2 mt-3">
+                <div class="form-group">
+                  <label>Contact Phone</label>
+                  <input type="text" formControlName="phone" class="form-control" placeholder="+1 (555) 123-4567">
+                </div>
+                <div class="form-group">
+                  <label>Business Address</label>
+                  <textarea formControlName="address" rows="3" class="form-control" placeholder="123 Business Rd, City, Country"></textarea>
+                </div>
+              </div>
+            </div>
           </div>
-          <!-- Other legacy fields hidden to focus on the new visual builder -->
+        </ng-template>
+
+        <!-- Core Sections Application -->
+        <ng-container *ngTemplateOutlet="coreSectionEditor; context: { group: builderForm.get('homeGroup'), title: 'Home', isContact: false }"></ng-container>
+        <ng-container *ngTemplateOutlet="coreSectionEditor; context: { group: builderForm.get('aboutGroup'), title: 'About Us', isContact: false }"></ng-container>
+        <ng-container *ngTemplateOutlet="coreSectionEditor; context: { group: builderForm.get('servicesGroup'), title: 'Services & Products', isContact: false }"></ng-container>
+        <ng-container *ngTemplateOutlet="coreSectionEditor; context: { group: builderForm.get('teamsGroup'), title: 'Our Team', isContact: false }"></ng-container>
+        <ng-container *ngTemplateOutlet="coreSectionEditor; context: { group: builderForm.get('contactGroup'), title: 'Contact Us', isContact: true }"></ng-container>
+        
+        <div class="glass-panel section-card">
+          <h3>Footer Config</h3>
+          <div class="form-group">
+            <textarea formControlName="footerInfo" rows="2" class="form-control" placeholder="© 2026 My Business"></textarea>
+          </div>
         </div>
 
         <div class="save-actions">
@@ -200,6 +311,152 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Products Tab -->
+    <div *ngIf="activeTab() === 'products'" class="tab-content">
+      <div class="product-manager">
+
+        <!-- Form Panel -->
+        <div class="product-form-panel glass-panel section-card">
+          <div class="header-row mb-4">
+            <h3>{{ editingProduct() ? 'Edit Product' : 'Add New Product' }}</h3>
+            <button *ngIf="editingProduct()" type="button" class="btn-inline" (click)="startNewProduct()">
+              + New
+            </button>
+          </div>
+
+          <form [formGroup]="productForm" (ngSubmit)="onSaveProduct()">
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Product Name *</label>
+                <input type="text" formControlName="productName" class="form-control" placeholder="e.g. Laptop Pro X">
+              </div>
+              <div class="form-group">
+                <label>Category *</label>
+                <input type="text" formControlName="productCategory" class="form-control" placeholder="e.g. Electronics">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Subcategory</label>
+                <input type="text" formControlName="subcategory" class="form-control" placeholder="e.g. Laptops">
+              </div>
+              <div class="form-group">
+                <label>Company / Brand</label>
+                <input type="text" formControlName="company" class="form-control" placeholder="e.g. TechCorp">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Price (₹)</label>
+                <input type="number" formControlName="price" class="form-control" min="0" step="0.01">
+              </div>
+              <div class="form-group">
+                <label>Stock Quantity</label>
+                <input type="number" formControlName="availableQuantity" class="form-control" min="0">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea formControlName="description" rows="2" class="form-control" placeholder="Short product description..."></textarea>
+            </div>
+
+            <div class="toggle-row form-group">
+              <label class="toggle-label">
+                <input type="checkbox" formControlName="isHidden">
+                <span>Hidden from public storefront</span>
+              </label>
+            </div>
+
+            <!-- Dynamic Specifications -->
+            <div class="settings-group mt-3">
+              <div class="header-row">
+                <h4>Custom Specifications</h4>
+                <button type="button" class="btn-inline sm" (click)="addSpec()">+ Add Spec</button>
+              </div>
+              <div formArrayName="specs" class="specs-list">
+                <div *ngFor="let spec of specControls.controls; let i=index" [formGroupName]="i" class="spec-row">
+                  <input type="text" formControlName="key" class="form-control sm" placeholder="Key (e.g. RAM)">
+                  <input type="text" formControlName="value" class="form-control sm" placeholder="Value (e.g. 16GB)">
+                  <button type="button" class="btn-remove-sm inline-remove" (click)="removeSpec(i)">×</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions mt-3">
+              <button type="submit" class="btn btn-primary" [disabled]="!productForm.valid">
+                {{ editingProduct() ? 'Update Product' : 'Save Product' }}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Product List Panel -->
+        <div class="product-list-panel">
+          <div class="glass-panel section-card">
+            <div class="header-row mb-4">
+              <h3>All Products ({{ filteredProducts().length }})</h3>
+              <span class="text-muted sm">Total: {{ products().length }} items</span>
+            </div>
+
+            <!-- Filters -->
+            <div class="product-filters grid-3 mb-4">
+              <input type="text" class="form-control sm" placeholder="Search products..."
+                [ngModel]="productSearch()" (ngModelChange)="productSearch.set($event)">
+              <select class="form-control sm" [ngModel]="productCategoryFilter()" (ngModelChange)="productCategoryFilter.set($event)">
+                <option value="">All Categories</option>
+                <option *ngFor="let cat of productCategories()" [value]="cat">{{ cat }}</option>
+              </select>
+              <select class="form-control sm" [ngModel]="productSortBy()" (ngModelChange)="productSortBy.set($event)">
+                <option value="">Sort: Newest</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="name_asc">Name: A–Z</option>
+              </select>
+            </div>
+
+            <!-- Loading -->
+            <div *ngIf="isLoadingProducts()" class="text-muted">Loading products...</div>
+
+            <!-- Empty State -->
+            <div *ngIf="!isLoadingProducts() && filteredProducts().length === 0" class="empty-state-sm text-muted">
+              No products found. Add your first product using the form.
+            </div>
+
+            <!-- Product Rows -->
+            <div class="product-rows">
+              <div *ngFor="let p of filteredProducts()" class="product-row-item glass-panel" [class.hidden-product]="isProductHidden(p)">
+                <div class="product-row-info">
+                  <div class="product-row-name">
+                    {{ p.productName }}
+                    <span *ngIf="isProductHidden(p)" class="hidden-badge">Hidden</span>
+                  </div>
+                  <div class="product-row-meta">
+                    <span class="meta-chip">{{ p.productCategory }}</span>
+                    <span *ngIf="getSpec(p, 'subcategory')" class="meta-chip sub">{{ getSpec(p, 'subcategory') }}</span>
+                    <span *ngIf="getSpec(p, 'company')" class="meta-chip brand">{{ getSpec(p, 'company') }}</span>
+                  </div>
+                </div>
+                <div class="product-row-price">
+                  <strong>₹{{ p.price | number:'1.2-2' }}</strong>
+                  <span class="stock-badge" [class.out-of-stock]="p.availableQuantity === 0">
+                    {{ p.availableQuantity }} in stock
+                  </span>
+                </div>
+                <div class="product-row-actions">
+                  <button class="btn-icon" title="Edit" (click)="editProduct(p)">✏️</button>
+                  <button class="btn-icon" [title]="isProductHidden(p) ? 'Show' : 'Hide'" (click)="toggleHideProduct(p)">
+                    {{ isProductHidden(p) ? '👁' : '🙈' }}
+                  </button>
+                  <button class="btn-icon delete" title="Delete" (click)="deleteProduct(p.id)">🗑️</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 

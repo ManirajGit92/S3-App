@@ -10,31 +10,41 @@
 <div *ngIf="!isLoading() && !error() && webpageData() as wp" class="custom-webpage">
 
   <main>
-    <section *ngIf="wp.homeSection" class="hero-section" id="home" [innerHTML]="wp.homeSection"></section>
-
-    <section *ngIf="wp.aboutUsSection" class="content-section" id="about">
-      <div class="container">
-        <h2>{{ settings.translate('About Us') }}</h2>
-        <div [innerHTML]="wp.aboutUsSection"></div>
-      </div>
-    </section>
-
-    <section *ngIf="wp.servicesProductsSection" class="content-section bg-alt" id="services">
-      <div class="container text-center">
-        <h2>{{ settings.translate('Services & Products') }}</h2>
-        <div [innerHTML]="wp.servicesProductsSection"></div>
-        <div class="store-link-wrapper mt-4">
-          <a [routerLink]="['/store', wp.id]" class="btn btn-primary btn-lg shadow">{{ settings.translate('Shop Our Products') }}</a>
+    <!-- Universal Section Renderer -->
+    <ng-template #sectionRenderer let-data="data" let-id="id" let-title="title" let-cssClass="cssClass">
+      <section *ngIf="data && (data.htmlContent || data.background?.url || data.overlays?.length)" 
+               class="content-section dynamic-section {{cssClass}}" [id]="id"
+               [style.background-image]="data.background?.url ? 'url(' + data.background.url + ')' : ''"
+               [style.filter]="data.background?.filter"
+               [attr.data-animation]="data.background?.animation">
+        
+        <div *ngIf="data.overlays?.length" class="section-overlay-container">
+          <div *ngFor="let ov of data.overlays" 
+               class="text-overlay"
+               [style.color]="ov.color"
+               [style.font-size]="ov.fontSize + 'px'"
+               [style.font-family]="ov.fontFamily"
+               [style.font-style]="ov.fontStyle === 'italic' ? 'italic' : 'normal'"
+               [style.font-weight]="ov.fontStyle === 'bold' ? '700' : '400'">
+            {{ settings.translate(ov.text) }}
+          </div>
         </div>
-      </div>
-    </section>
 
-    <section *ngIf="wp.teamsSection" class="content-section" id="teams">
-      <div class="container">
-        <h2>{{ settings.translate('Our Team') }}</h2>
-        <div [innerHTML]="wp.teamsSection"></div>
-      </div>
-    </section>
+        <div class="container" [class.legacy-content]="data.background?.url || data.overlays?.length">
+          <h2 *ngIf="title && data.htmlContent" class="text-center">{{ title }}</h2>
+          <div [innerHTML]="settings.translate(data.htmlContent)"></div>
+          
+          <div *ngIf="id === 'services' && data.htmlContent" class="store-link-wrapper mt-4 text-center">
+            <a [routerLink]="['/store', wp.id]" class="btn btn-primary btn-lg shadow">{{ settings.translate('Shop Our Products') }}</a>
+          </div>
+        </div>
+      </section>
+    </ng-template>
+
+    <ng-container *ngTemplateOutlet="sectionRenderer; context: { data: homeData(), id: 'home', title: '', cssClass: 'hero-section' }"></ng-container>
+    <ng-container *ngTemplateOutlet="sectionRenderer; context: { data: aboutData(), id: 'about', title: settings.translate('About Us'), cssClass: '' }"></ng-container>
+    <ng-container *ngTemplateOutlet="sectionRenderer; context: { data: servicesData(), id: 'services', title: settings.translate('Services & Products'), cssClass: 'bg-alt' }"></ng-container>
+    <ng-container *ngTemplateOutlet="sectionRenderer; context: { data: teamsData(), id: 'teams', title: settings.translate('Our Team'), cssClass: '' }"></ng-container>
 
     <section *ngFor="let sec of additionalSections()" 
              class="content-section dynamic-section"
@@ -52,28 +62,81 @@
              [style.font-family]="ov.fontFamily"
              [style.font-style]="ov.fontStyle === 'italic' ? 'italic' : 'normal'"
              [style.font-weight]="ov.fontStyle === 'bold' ? '700' : '400'">
-          {{ ov.text }}
+          {{ settings.translate(ov.text) }}
         </div>
       </div>
 
       <!-- Legacy HTML Content Rendering -->
       <div class="container" [class.legacy-content]="!sec.structured">
-        <h2 *ngIf="!sec.structured">{{ sec.title }}</h2>
-        <div *ngIf="!sec.structured" [innerHTML]="sec.content"></div>
+        <h2 *ngIf="!sec.structured">{{ settings.translate(sec.title) }}</h2>
+        <div *ngIf="!sec.structured" [innerHTML]="settings.translate(sec.content)"></div>
       </div>
     </section>
 
-    <section *ngIf="wp.contactUsSection" class="content-section bg-dark" id="contact">
-      <div class="container text-center">
-        <h2>{{ settings.translate('Contact Us') }}</h2>
-        <div [innerHTML]="wp.contactUsSection"></div>
+    <!-- Contact Section -->
+    <section *ngIf="wp.contactUsSection" class="content-section" id="contact"
+             [style.background-image]="contactData()?.background?.url ? 'url(' + contactData()!.background!.url + ')' : ''"
+             [style.filter]="contactData()?.background?.filter"
+             [attr.data-animation]="contactData()?.background?.animation">
+             
+      <div *ngIf="contactData()?.overlays?.length" class="section-overlay-container">
+        <div *ngFor="let ov of contactData()!.overlays" 
+             class="text-overlay"
+             [style.color]="ov.color"
+             [style.font-size]="ov.fontSize + 'px'"
+             [style.font-family]="ov.fontFamily"
+             [style.font-style]="ov.fontStyle === 'italic' ? 'italic' : 'normal'"
+             [style.font-weight]="ov.fontStyle === 'bold' ? '700' : '400'">
+          {{ settings.translate(ov.text) }}
+        </div>
+      </div>
+
+      <div class="container" [class.legacy-content]="contactData()?.background?.url || contactData()?.overlays?.length">
+        <h2 class="text-center">{{ settings.translate('Contact Us') }}</h2>
+
+        <div *ngIf="contactData() as contact" class="contact-grid mt-4">
+          <!-- Maps Column -->
+          <div class="map-wrapper glass-panel">
+            <iframe *ngIf="contact.mapUrl"
+              [src]="contact.safeMapUrl"
+              width="100%" height="350" style="border:0;" 
+              allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+            <div *ngIf="!contact.mapUrl" class="no-map-placeholder">
+              <p>No map location provided.</p>
+            </div>
+          </div>
+
+          <!-- Contact Info Column -->
+          <div class="contact-info glass-panel">
+            <h3>Get in Touch</h3>
+            <div class="info-list mt-3">
+              <div class="contact-item" *ngIf="contact.address">
+                <span class="icon">📍</span>
+                <p>{{ settings.translate(contact.address) }}</p>
+              </div>
+              <div class="contact-item" *ngIf="contact.phone">
+                <span class="icon">📞</span>
+                <p><a [href]="'tel:' + contact.phone">{{ contact.phone }}</a></p>
+              </div>
+              <div class="contact-item" *ngIf="contact.email">
+                <span class="icon">✉️</span>
+                <p><a [href]="'mailto:' + contact.email">{{ contact.email }}</a></p>
+              </div>
+            </div>
+            
+            <div *ngIf="contact.htmlContent" class="mt-4" [innerHTML]="settings.translate(contact.htmlContent)"></div>
+          </div>
+        </div>
+
+        <div *ngIf="!contactData()" [innerHTML]="settings.translate(wp.contactUsSection)" class="mt-4"></div>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
     <div class="container text-center">
-      <p [innerHTML]="wp.footerInfo || '© 2026. All rights reserved.'"></p>
+      <p [innerHTML]="settings.translate(wp.footerInfo || '© 2026. All rights reserved.')"></p>
     </div>
   </footer>
 </div>
