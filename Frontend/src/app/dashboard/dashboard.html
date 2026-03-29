@@ -1,0 +1,264 @@
+<div class="dashboard-wrapper">
+  <!-- Sidebar -->
+  <aside class="dashboard-sidebar glass-panel">
+    <div class="sidebar-header">
+      <div class="admin-avatar">A</div>
+      <div class="admin-info">
+        <h4>{{ username() }}</h4>
+        <p>{{ email() }}</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button [class.active]="activeTab() === 'builder'" (click)="setTab('builder')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        Site Builder
+      </button>
+      <button [class.active]="activeTab() === 'faqs'" (click)="setTab('faqs')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a2 2 0 0 0-2-2l-6 0a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/><path d="M18 9a2 2 0 1 1 2 2 2 2 0 1 1-2-2Z"/><path d="M10 9h2"/><path d="M10 13h2"/></svg>
+        FAQ Manager
+      </button>
+      <button [class.active]="activeTab() === 'history'" (click)="setTab('history')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+        Chat history
+      </button>
+      <button [class.active]="activeTab() === 'security'" (click)="setTab('security')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Security
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-logout" (click)="logout()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dashboard-main">
+    <div class="dashboard-header">
+      <h1>{{ activeTab() | titlecase }}</h1>
+      <div *ngIf="saveMessage()" class="toast-message">{{ saveMessage() }}</div>
+    </div>
+
+    <!-- Builder Tab -->
+    <div *ngIf="activeTab() === 'builder'" class="tab-content">
+      <form [formGroup]="builderForm" (ngSubmit)="onSaveWebpage()" class="builder-container">
+        <div class="glass-panel section-card">
+          <h3>Header Settings</h3>
+          <div class="form-group">
+            <label>Site Name</label>
+            <input type="text" formControlName="headerInfo" class="form-control" placeholder="Enter Site Name">
+          </div>
+          
+          <div class="menu-items-editor">
+            <div class="header-row">
+              <label>Navigation Menu</label>
+              <button type="button" (click)="addMenuItem()" class="btn-inline">+ Add Link</button>
+            </div>
+            <div formArrayName="menuInfo" class="menu-list">
+              <div *ngFor="let item of menuInfo.controls; let i=index" [formGroupName]="i" class="menu-item-row">
+                <input type="text" formControlName="label" placeholder="Label" class="form-control sm">
+                <input type="text" formControlName="link" placeholder="Link (#anchor or URL)" class="form-control sm">
+                <button type="button" (click)="removeMenuItem(i)" class="btn-remove">×</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-panel section-card">
+          <div class="header-row">
+            <h3>Webpage Sections</h3>
+            <button type="button" (click)="addSection()" class="btn-inline">+ Add New Section</button>
+          </div>
+          <p class="text-muted mb-4">Create dynamic sections with background images and text overlays. Each section automatically adds a link to your navigation menu.</p>
+          
+          <div formArrayName="additionalSections" class="sections-list">
+            <div *ngFor="let sec of additionalSections.controls; let i=index" [formGroupName]="i" class="section-editor-card glass-panel">
+              <div class="section-header">
+                <input type="text" formControlName="title" placeholder="Section Title" class="form-control title-input">
+                <button type="button" (click)="removeSection(i)" class="btn-remove-section">Delete Section</button>
+              </div>
+
+              <div class="section-body">
+                <!-- Background Settings -->
+                <div class="settings-group" formGroupName="background">
+                  <h4>Background Settings</h4>
+                  <div class="grid-3">
+                    <div class="form-group">
+                      <label>Image URL</label>
+                      <input type="text" formControlName="url" placeholder="https://..." class="form-control">
+                    </div>
+                    <div class="form-group">
+                      <label>Filter Effect</label>
+                      <select formControlName="filter" class="form-control">
+                        <option *ngFor="let f of bgFilters" [value]="f.value">{{ f.label }}</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>Scroll Animation</label>
+                      <select formControlName="animation" class="form-control">
+                        <option *ngFor="let a of bgAnimations" [value]="a.value">{{ a.label }}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Text Overlays -->
+                <div class="settings-group">
+                  <div class="header-row">
+                    <h4>Text Overlays</h4>
+                    <button type="button" (click)="addOverlay(i)" class="btn-inline sm">+ Add Text</button>
+                  </div>
+                  
+                  <div formArrayName="overlays" class="overlays-list">
+                    <div *ngFor="let ov of getOverlays(i).controls; let j=index" [formGroupName]="j" class="overlay-item-row">
+                      <div class="overlay-main">
+                        <input type="text" formControlName="text" placeholder="Enter text here..." class="form-control">
+                      </div>
+                      <div class="overlay-settings grid-4">
+                        <div class="form-group">
+                          <label>Size (px)</label>
+                          <input type="number" formControlName="fontSize" class="form-control sm">
+                        </div>
+                        <div class="form-group">
+                          <label>Color</label>
+                          <input type="color" formControlName="color" class="form-control sm color-picker">
+                        </div>
+                        <div class="form-group">
+                          <label>Font Family</label>
+                          <select formControlName="fontFamily" class="form-control sm">
+                            <option *ngFor="let font of fontFamilies" [value]="font">{{ font }}</option>
+                          </select>
+                        </div>
+                        <div class="form-group">
+                          <label>Style</label>
+                          <select formControlName="fontStyle" class="form-control sm">
+                            <option value="normal">Normal</option>
+                            <option value="italic">Italic</option>
+                            <option value="bold">Bold</option>
+                          </select>
+                        </div>
+                      </div>
+                      <button type="button" (click)="removeOverlay(i, j)" class="btn-remove-sm">×</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-panel section-card legacy-card" *ngIf="false">
+          <h3>Legacy Sections (Advanced HTML)</h3>
+          <p class="text-muted sm">Legacy fields for direct HTML editing. Use with caution.</p>
+          <div class="form-group">
+            <label>Hero Section</label>
+            <textarea formControlName="homeSection" rows="2" class="form-control"></textarea>
+          </div>
+          <!-- Other legacy fields hidden to focus on the new visual builder -->
+        </div>
+
+        <div class="save-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="isSaving()">
+            {{ isSaving() ? 'Saving...' : 'Publish Changes' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- FAQs Tab -->
+    <div *ngIf="activeTab() === 'faqs'" class="tab-content">
+      <div class="faq-manager">
+        <form [formGroup]="faqForm" (ngSubmit)="onSaveFAQ()" class="glass-panel faq-form">
+          <h3>{{ faqForm.value.id ? 'Edit FAQ' : 'Add New FAQ' }}</h3>
+          <div class="form-group">
+            <label>Question</label>
+            <input type="text" formControlName="question" class="form-control" placeholder="e.g. What are your hours?">
+          </div>
+          <div class="form-group">
+            <label>Answer</label>
+            <textarea formControlName="answer" rows="3" class="form-control" placeholder="Answer text..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" *ngIf="faqForm.value.id" (click)="faqForm.reset({id:0})" class="btn btn-outline sm">Cancel</button>
+            <button type="submit" class="btn btn-primary sm" [disabled]="!faqForm.valid">Save FAQ</button>
+          </div>
+        </form>
+
+        <div class="faq-list">
+          <div *ngFor="let faq of faqs()" class="glass-panel faq-item">
+            <div class="faq-content">
+              <strong>Q: {{ faq.question }}</strong>
+              <p>A: {{ faq.answer }}</p>
+            </div>
+            <div class="faq-actions">
+              <button (click)="editFAQ(faq)" class="btn-icon">✎</button>
+              <button (click)="deleteFAQ(faq.id)" class="btn-icon delete">×</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- history Tab -->
+    <div *ngIf="activeTab() === 'history'" class="tab-content">
+      <div class="history-container">
+        <div class="glass-panel table-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>User</th>
+                <th>Message</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let msg of chatHistory()">
+                <td>{{ msg.timestamp | date:'short' }}</td>
+                <td>
+                  <span class="sender-badge" [class.user]="msg.sender === 'User'">{{ msg.sender }}</span>
+                </td>
+                <td class="msg-cell">{{ msg.message }}</td>
+                <td>
+                  <div *ngIf="msg.userName" class="user-details">
+                    <small>Name: {{ msg.userName }}</small><br>
+                    <small>Contact: {{ msg.userContact }}</small>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Tab -->
+    <div *ngIf="activeTab() === 'security'" class="tab-content">
+      <form [formGroup]="securityForm" (ngSubmit)="onUpdateProfile()" class="glass-panel security-form">
+        <h3>Update Admin Credentials</h3>
+        <p class="text-muted">Use this section to change your login email or password.</p>
+        
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" formControlName="email" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Admin Username</label>
+          <input type="text" formControlName="username" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>New Password (leave blank to keep current)</label>
+          <input type="password" formControlName="password" class="form-control" placeholder="••••••••">
+        </div>
+
+        <div class="form-actions mt-4">
+          <button type="submit" class="btn btn-primary" [disabled]="!securityForm.valid">Update Profile</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>

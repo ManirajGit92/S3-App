@@ -1,0 +1,109 @@
+<header class="global-header glass-panel">
+  <div class="header-left">
+    <a class="logo" routerLink="/home">{{ siteName() }}</a>
+  </div>
+
+  <nav class="header-nav">
+    <a *ngFor="let item of menuItems()"
+       [href]="item.link"
+       (click)="onNavClick($event, item.link)">
+      {{ settings.translate(item.label) }}
+    </a>
+  </nav>
+
+  <div class="header-actions">
+    <!-- Settings -->
+    <div class="settings-wrapper">
+      <button class="icon-btn" (click)="toggleSettings()" title="Settings" id="settings-toggle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </button>
+
+      <div class="settings-dropdown glass-panel" *ngIf="showSettingsDropdown()">
+        <h4>{{ settings.translate('Settings') }}</h4>
+
+        <!-- Theme -->
+        <div class="setting-group">
+          <label>{{ settings.translate('Theme') }}</label>
+          <div class="theme-buttons">
+            <button *ngFor="let t of themes"
+                    class="theme-btn"
+                    [class.active]="settings.theme() === t"
+                    (click)="settings.setTheme(t)">
+              {{ settings.translate(t === 'dark' ? 'Dark' : t === 'light' ? 'Light' : 'Custom') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Font Family -->
+        <div class="setting-group">
+          <label>{{ settings.translate('Font Style') }}</label>
+          <select class="form-control setting-select"
+                  [ngModel]="settings.fontFamily()"
+                  (ngModelChange)="settings.setFontFamily($event)">
+            <option *ngFor="let f of fonts" [value]="f" [style.font-family]="f">{{ f }}</option>
+          </select>
+        </div>
+
+        <!-- Font Size -->
+        <div class="setting-group">
+          <label>{{ settings.translate('Font Size') }}: {{ settings.fontSize() }}px</label>
+          <input type="range" min="12" max="22" step="1"
+                 [ngModel]="settings.fontSize()"
+                 (ngModelChange)="settings.setFontSize($event)"
+                 class="range-slider">
+        </div>
+
+        <!-- Color -->
+        <div class="setting-group">
+          <label>{{ settings.translate('Color') }}</label>
+          <div class="color-row">
+            <input type="color"
+                   [ngModel]="settings.primaryColor()"
+                   (ngModelChange)="settings.setPrimaryColor($event)"
+                   class="color-input">
+            <span class="color-value">{{ settings.primaryColor() }}</span>
+          </div>
+        </div>
+
+        <!-- Language -->
+        <div class="setting-group">
+          <label>{{ settings.translate('Language') }}</label>
+          <select class="form-control setting-select"
+                  [ngModel]="settings.language()"
+                  (ngModelChange)="settings.setLanguage($event)">
+            <option *ngFor="let lang of languages" [value]="lang.code">{{ lang.label }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth -->
+    <ng-container *ngIf="!isLoggedIn()">
+      <button class="btn btn-primary login-btn" (click)="onLoginClick()" id="login-button">
+        {{ settings.translate('Login') }}
+      </button>
+    </ng-container>
+
+    <ng-container *ngIf="isLoggedIn()">
+      <button class="btn btn-outline admin-btn" (click)="goToDashboard()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M3 9h18"/><path d="M9 21V9"/>
+        </svg>
+        {{ adminName() }}
+      </button>
+      <button class="btn btn-outline logout-btn" (click)="onLogout()">
+        {{ settings.translate('Logout') }}
+      </button>
+    </ng-container>
+  </div>
+</header>
+
+<!-- Login Modal -->
+<app-login-modal
+  *ngIf="showLoginModal()"
+  (loginSuccess)="onLoginSuccess($event)"
+  (close)="showLoginModal.set(false)">
+</app-login-modal>

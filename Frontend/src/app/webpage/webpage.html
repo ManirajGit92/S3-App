@@ -1,0 +1,79 @@
+<div *ngIf="isLoading()" class="loader-container full-page">
+  <span class="loader"></span>
+</div>
+
+<div *ngIf="error()" class="error-page">
+  <h2>404</h2>
+  <p>{{ error() }}</p>
+</div>
+
+<div *ngIf="!isLoading() && !error() && webpageData() as wp" class="custom-webpage">
+
+  <main>
+    <section *ngIf="wp.homeSection" class="hero-section" id="home" [innerHTML]="wp.homeSection"></section>
+
+    <section *ngIf="wp.aboutUsSection" class="content-section" id="about">
+      <div class="container">
+        <h2>{{ settings.translate('About Us') }}</h2>
+        <div [innerHTML]="wp.aboutUsSection"></div>
+      </div>
+    </section>
+
+    <section *ngIf="wp.servicesProductsSection" class="content-section bg-alt" id="services">
+      <div class="container text-center">
+        <h2>{{ settings.translate('Services & Products') }}</h2>
+        <div [innerHTML]="wp.servicesProductsSection"></div>
+        <div class="store-link-wrapper mt-4">
+          <a [routerLink]="['/store', wp.id]" class="btn btn-primary btn-lg shadow">{{ settings.translate('Shop Our Products') }}</a>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="wp.teamsSection" class="content-section" id="teams">
+      <div class="container">
+        <h2>{{ settings.translate('Our Team') }}</h2>
+        <div [innerHTML]="wp.teamsSection"></div>
+      </div>
+    </section>
+
+    <section *ngFor="let sec of additionalSections()" 
+             class="content-section dynamic-section"
+             [id]="sec.title.toLowerCase().split(' ').join('-')"
+             [style.background-image]="sec.structured ? 'url(' + sec.structured.background.url + ')' : ''"
+             [style.filter]="sec.structured ? sec.structured.background.filter : ''"
+             [attr.data-animation]="sec.structured ? sec.structured.background.animation : ''">
+      
+      <!-- Overlay Rendering for Structured JSON -->
+      <div *ngIf="sec.structured" class="section-overlay-container">
+        <div *ngFor="let ov of sec.structured.overlays" 
+             class="text-overlay"
+             [style.color]="ov.color"
+             [style.font-size]="ov.fontSize + 'px'"
+             [style.font-family]="ov.fontFamily"
+             [style.font-style]="ov.fontStyle === 'italic' ? 'italic' : 'normal'"
+             [style.font-weight]="ov.fontStyle === 'bold' ? '700' : '400'">
+          {{ ov.text }}
+        </div>
+      </div>
+
+      <!-- Legacy HTML Content Rendering -->
+      <div class="container" [class.legacy-content]="!sec.structured">
+        <h2 *ngIf="!sec.structured">{{ sec.title }}</h2>
+        <div *ngIf="!sec.structured" [innerHTML]="sec.content"></div>
+      </div>
+    </section>
+
+    <section *ngIf="wp.contactUsSection" class="content-section bg-dark" id="contact">
+      <div class="container text-center">
+        <h2>{{ settings.translate('Contact Us') }}</h2>
+        <div [innerHTML]="wp.contactUsSection"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container text-center">
+      <p [innerHTML]="wp.footerInfo || '© 2026. All rights reserved.'"></p>
+    </div>
+  </footer>
+</div>

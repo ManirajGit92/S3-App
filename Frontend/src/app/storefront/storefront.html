@@ -1,0 +1,95 @@
+<div class="store-layout" *ngIf="!isLoading() && webpageData()">
+  
+  <header class="store-header glass-panel">
+    <div class="store-brand">
+      <a [href]="'/page/' + webpageData().user?.webpageUniqueId" class="back-link">← Back to {{ webpageData().headerInfo || 'Site' }}</a>
+      <h2>Storefront</h2>
+    </div>
+    
+    <div class="store-controls">
+      <input type="text" class="search-input" placeholder="Search products..." [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" (keyup.enter)="onSearch()">
+      <button class="btn btn-primary" (click)="onSearch()">Search</button>
+      
+      <select class="sort-select" [ngModel]="sortBy()" (change)="onSortChange($event)">
+        <option value="">Sort: Newest</option>
+        <option value="price_asc">Price: Low to High</option>
+        <option value="price_desc">Price: High to Low</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="store-main">
+    <!-- Products Grid -->
+    <div class="products-container">
+      <div *ngIf="products().length === 0" class="empty-state glass-panel">
+        No products found.
+      </div>
+
+      <div class="product-grid">
+        <div *ngFor="let p of products()" class="product-card glass-panel">
+          <div class="p-category">{{ p.productCategory || 'Product' }}</div>
+          <h3 class="p-name">{{ p.productName }}</h3>
+          <p class="p-desc">{{ p.description }}</p>
+          
+          <div class="p-footer">
+            <span class="p-price">${{ p.price }}</span>
+            <span class="p-stock" [class.low-stock]="p.availableQuantity <= 5">
+              {{ p.availableQuantity > 0 ? p.availableQuantity + ' in stock' : 'Out of Stock' }}
+            </span>
+          </div>
+
+          <button class="btn btn-primary full-width mt-2" 
+                  [disabled]="p.availableQuantity === 0" 
+                  (click)="addToCart(p)">
+            {{ p.availableQuantity === 0 ? 'Sold Out' : 'Add to Cart' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <aside class="cart-sidebar glass-panel">
+      <div class="cart-header">
+        <h3>Your Cart</h3>
+        <span class="cart-count">{{ cart().length }} items</span>
+      </div>
+
+      <div class="cart-items">
+        <div *ngIf="cart().length === 0" class="empty-cart text-muted">
+          Your cart is empty.
+        </div>
+
+        <div *ngFor="let item of cart(); let i = index" class="cart-item">
+          <div class="ci-info">
+            <h4>{{ item.productName }}</h4>
+            <div class="ci-meta">
+              <span>Qty: {{ item.cartQty }}</span>
+              <span>${{ item.price * item.cartQty | number:'1.2-2' }}</span>
+            </div>
+          </div>
+          <button class="btn-remove" (click)="removeFromCart(i)">✕</button>
+        </div>
+      </div>
+
+      <div class="cart-summary" *ngIf="cart().length > 0">
+        <div class="total-row">
+          <span>Total</span>
+          <span class="total-val">${{ cartTotal() | number:'1.2-2' }}</span>
+        </div>
+        
+        <button class="btn btn-primary btn-lg full-width pulse-shadow" 
+                (click)="buyNow()" [disabled]="isPurchasing()">
+          {{ isPurchasing() ? 'Processing...' : 'Secure Checkout' }}
+        </button>
+      </div>
+
+      <div class="alert-success mt-3" *ngIf="purchaseSuccess()">
+        Purchase successful! Thank you.
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div *ngIf="isLoading()" class="loader-container full-page">
+  <span class="loader"></span>
+</div>

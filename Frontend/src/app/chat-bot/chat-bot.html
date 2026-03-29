@@ -1,0 +1,48 @@
+<div class="chat-container" [class.open]="isOpen()">
+  <!-- Floating Bubble -->
+  <button class="chat-bubble shadow" (click)="toggleChat()">
+    <svg *ngIf="!isOpen()" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+    <svg *ngIf="isOpen()" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+  </button>
+
+  <!-- Chat Window -->
+  <div class="chat-window glass-panel" *ngIf="isOpen()">
+    <div class="chat-header">
+      <div class="status-dot"></div>
+      <h3>S2 Assistant</h3>
+    </div>
+
+    <div class="chat-messages" #scrollContainer>
+      <div *ngFor="let msg of messages()" class="message-wrapper" [class.user]="msg.sender === 'user'">
+        <div class="message-bubble" [innerHTML]="msg.text"></div>
+        <div class="message-time">{{ msg.timestamp | date:'shortTime' }}</div>
+      </div>
+      
+      <!-- Typing Indicator -->
+      <div *ngIf="isTyping()" class="message-wrapper">
+        <div class="message-bubble typing">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <!-- Details Form -->
+      <div *ngIf="showDetailsForm()" class="details-form-card glass-panel">
+        <p>Please share your details for follow-up:</p>
+        <input type="text" placeholder="Name" [(ngModel)]="userName" class="form-control sm">
+        <input type="text" placeholder="Contact Info" [(ngModel)]="userContact" class="form-control sm">
+        <button class="btn btn-primary sm full-width" (click)="submitDetails()">Submit & Notify Admin</button>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <input type="text" 
+             [(ngModel)]="userInput" 
+             (keyup.enter)="sendMessage()" 
+             placeholder="Type a message..." 
+             class="form-control">
+      <button class="send-btn" (click)="sendMessage()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+      </button>
+    </div>
+  </div>
+</div>

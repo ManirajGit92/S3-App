@@ -1,0 +1,38 @@
+<div class="modal-overlay" (click)="onOverlayClick($event)">
+  <div class="modal-card glass-panel">
+    <button class="modal-close" (click)="close.emit()">&times;</button>
+
+    <div class="modal-header">
+      <div class="modal-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+      </div>
+      <h2>{{ settings.translate('Welcome Back') }}</h2>
+      <p class="subtitle">{{ settings.translate('Sign in to manage your website') }}</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="modal-form">
+      <div class="form-group">
+        <label for="modal-email">{{ settings.translate('Email Address') }}</label>
+        <input id="modal-email" type="email" formControlName="email" class="form-control" placeholder="you@example.com">
+      </div>
+
+      <div class="form-group">
+        <label for="modal-password">{{ settings.translate('Password') }}</label>
+        <input id="modal-password" type="password" formControlName="password" class="form-control" placeholder="••••••••">
+      </div>
+
+      <div *ngIf="errorMessage()" class="error-banner">
+        {{ errorMessage() }}
+      </div>
+
+      <button type="submit" class="btn btn-primary full-width" [disabled]="loginForm.invalid || isLoading()">
+        <span *ngIf="!isLoading()">{{ settings.translate('Sign In') }}</span>
+        <span *ngIf="isLoading()" class="loader-sm"></span>
+      </button>
+    </form>
+  </div>
+</div>
