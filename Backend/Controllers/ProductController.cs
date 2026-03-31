@@ -11,10 +11,12 @@ namespace Backend.Controllers
     public class ProductController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public ProductController(AppDbContext context)
+        public ProductController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         // GET api/product/webpage/{webpageId}?search=...&sort=...
@@ -44,10 +46,22 @@ namespace Backend.Controllers
             return Ok(product);
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> CreateProduct([FromBody] Product product)
         {
+            // Allow API Key for MCP or check Authorize
+            var apiKey = Request.Headers["X-MCP-API-KEY"].ToString();
+            var configApiKey = _configuration["McpApiKey"];
+            
+            if (string.IsNullOrEmpty(apiKey) || apiKey != configApiKey)
+            {
+                if (!User.Identity?.IsAuthenticated ?? true)
+                {
+                    return Unauthorized("Invalid API Key or Not Authenticated");
+                }
+            }
+
             // Validation user owns webpage omitted for brevity, assuming WebpageId is valid
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
@@ -129,10 +143,22 @@ namespace Backend.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { message = "Purchase successful" });
         }
-        [Authorize]
+        [AllowAnonymous] // We handle auth manually for API Key support
         [HttpPost("bulk")]
         public async Task<IActionResult> BulkCreateProducts([FromBody] List<Product> products)
         {
+            // Allow API Key for MCP or check Authorize
+            var apiKey = Request.Headers["X-MCP-API-KEY"].ToString();
+            var configApiKey = _configuration["McpApiKey"];
+            
+            if (string.IsNullOrEmpty(apiKey) || apiKey != configApiKey)
+            {
+                if (!User.Identity?.IsAuthenticated ?? true)
+                {
+                    return Unauthorized("Invalid API Key or Not Authenticated");
+                }
+            }
+
             if (products == null || products.Count == 0) return BadRequest("No products provided.");
 
             // Validation user owns webpage omitted for brevity, logic proceeds with list
