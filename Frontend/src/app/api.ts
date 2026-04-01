@@ -99,6 +99,10 @@ export class Api {
     return this.http.delete(`${this.apiUrl}/product/${id}`, { headers: this.getHeaders() });
   }
 
+  deleteAllProducts(webpageId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/product/all/${webpageId}`, { headers: this.getHeaders() });
+  }
+
   buyProduct(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/product/buy`, data);
   }

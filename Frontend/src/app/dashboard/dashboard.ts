@@ -36,6 +36,11 @@ export class Dashboard implements OnInit {
   pendingProducts = signal<any[]>([]);
   isLoadingProducts = signal(false);
   editingProduct = signal<any>(null);
+
+  // Delete All Modal
+  showDeleteAllModal = signal(false);
+  deleteAllConfirmText = signal('');
+  isDeletingAll = signal(false);
   
   productForm = this.fb.group({
     id: [0],
@@ -415,6 +420,18 @@ export class Dashboard implements OnInit {
     XLSX.writeFile(wb, 'Products_Export.xlsx');
   }
 
+  /** Case-insensitive, synonym-aware column value resolver for Excel imports */
+  private resolveCell(row: any, ...aliases: string[]): string {
+    const keys = Object.keys(row);
+    for (const alias of aliases) {
+      const match = keys.find(k => k.trim().toLowerCase() === alias.toLowerCase());
+      if (match !== undefined && row[match] !== undefined && row[match] !== '') {
+        return String(row[match]);
+      }
+    }
+    return '';
+  }
+
   onImportExcel(event: any) {
     const file = event.target.files[0];
     if (!file) return;
@@ -427,21 +444,32 @@ export class Dashboard implements OnInit {
       const json: any[] = XLSX.utils.sheet_to_json(sheet);
 
       const imported = json.map(row => {
+        // Resolve each field with common synonyms (case-insensitive)
+        const name        = this.resolveCell(row, 'Product Name', 'Name', 'ProductName', 'product name') || 'New Product';
+        const category    = this.resolveCell(row, 'Category', 'Product Category', 'ProductCategory') || 'General';
+        const subcategory = this.resolveCell(row, 'Subcategory', 'Sub Category', 'Sub-Category');
+        const priceStr    = this.resolveCell(row, 'Price', 'Unit Price', 'MRP');
+        const stockStr    = this.resolveCell(row, 'Stock', 'Stock count', 'Stock Count', 'Quantity', 'Available Quantity', 'AvailableQuantity', 'Qty', 'Inventory');
+        const brand       = this.resolveCell(row, 'Brand', 'Company', 'Manufacturer');
+        const description = this.resolveCell(row, 'Description', 'Desc', 'Details');
+        const imageUrl    = this.resolveCell(row, 'Image URL', 'ImageURL', 'Image', 'Image Url', 'image url');
+
         const spec = {
-          subcategory: row['Subcategory'] || '',
-          company: row['Brand'] || '',
-          imageUrl: row['Image URL'] || '',
+          subcategory,
+          company: brand,
+          imageUrl,
           isHidden: false,
           specs: []
         };
+
         return {
           id: 0,
           webpageId: this.webpageId(),
-          productName: row['Product Name'] || 'New Product',
-          productCategory: row['Category'] || 'General',
-          price: parseFloat(row['Price']) || 0,
-          availableQuantity: parseInt(row['Stock']) || 0,
-          description: row['Description'] || '',
+          productName: name,
+          productCategory: category,
+          price: parseFloat(priceStr) || 0,
+          availableQuantity: parseInt(stockStr, 10) || 0,
+          description,
           otherSpec: JSON.stringify(spec)
         };
       });
@@ -595,6 +623,34 @@ export class Dashboard implements OnInit {
         this.showToast('Product deleted.');
       });
     }
+  }
+
+  openDeleteAllModal() {
+    this.deleteAllConfirmText.set('');
+    this.showDeleteAllModal.set(true);
+  }
+
+  closeDeleteAllModal() {
+    this.showDeleteAllModal.set(false);
+    this.deleteAllConfirmText.set('');
+  }
+
+  confirmDeleteAll() {
+    if (this.deleteAllConfirmText().trim() !== 'delete all') return;
+    this.isDeletingAll.set(true);
+    this.api.deleteAllProducts(this.webpageId()).subscribe({
+      next: (res: any) => {
+        this.isDeletingAll.set(false);
+        this.products.set([]);
+        this.pendingProducts.set([]);
+        this.closeDeleteAllModal();
+        this.showToast(res.message || 'All products deleted.');
+      },
+      error: () => {
+        this.isDeletingAll.set(false);
+        alert('Failed to delete all products. Please try again.');
+      }
+    });
   }
 
   // --- Chat History Methods ---

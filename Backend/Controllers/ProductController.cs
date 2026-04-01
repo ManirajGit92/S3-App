@@ -99,6 +99,22 @@ namespace Backend.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { message = "Product deleted" });
         }
+
+        [Authorize]
+        [HttpDelete("all/{webpageId}")]
+        public async Task<IActionResult> DeleteAllProducts(int webpageId)
+        {
+            var products = await _context.Products.Where(p => p.WebpageId == webpageId).ToListAsync();
+            var count = products.Count;
+            
+            if (count > 0) 
+            {
+                _context.Products.RemoveRange(products);
+                await _context.SaveChangesAsync();
+            }
+            
+            return Ok(new { message = $"{count} products deleted successfully." });
+        }
         
         // POST api/product/buy
         [HttpPost("buy")]

@@ -475,6 +475,9 @@
                 <button *ngIf="pendingProducts().length > 0" type="button" class="btn btn-primary pulse-shadow" (click)="savePendingProducts()" [disabled]="isSaving()">
                   💾 Save {{ pendingProducts().length }} Pending
                 </button>
+                <button type="button" class="btn-inline danger" (click)="openDeleteAllModal()" [disabled]="products().length === 0" title="Delete all products">
+                  🗑️ Delete All
+                </button>
               </div>
             </div>
 
@@ -540,6 +543,35 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Delete All Confirmation Modal -->
+      <div class="da-overlay" *ngIf="showDeleteAllModal()" (click)="closeDeleteAllModal()"></div>
+      <div class="da-modal glass-panel" *ngIf="showDeleteAllModal()">
+        <div class="da-modal-icon">⚠️</div>
+        <h3 class="da-modal-title">Delete All Products</h3>
+        <p class="da-modal-desc">
+          This will permanently delete <strong>all {{ products().length }} products</strong> from your store.
+          This action <strong>cannot be undone</strong>.
+        </p>
+        <p class="da-modal-instruction">Type <code>delete all</code> below to confirm:</p>
+        <input
+          type="text"
+          class="form-control da-confirm-input"
+          placeholder="delete all"
+          autocomplete="off"
+          [ngModel]="deleteAllConfirmText()"
+          (ngModelChange)="deleteAllConfirmText.set($event)">
+        <div class="da-modal-actions">
+          <button type="button" class="btn btn-outline" (click)="closeDeleteAllModal()" [disabled]="isDeletingAll()">Cancel</button>
+          <button
+            type="button"
+            class="btn btn-danger"
+            [disabled]="deleteAllConfirmText().trim() !== 'delete all' || isDeletingAll()"
+            (click)="confirmDeleteAll()">
+            {{ isDeletingAll() ? 'Deleting...' : '🗑️ Delete All Products' }}
+          </button>
+        </div>
       </div>
     </div>
 
