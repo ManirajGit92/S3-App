@@ -41,6 +41,9 @@ export class Storefront implements OnInit {
   checkoutStep = signal<'select' | 'details' | 'processing' | 'success'>('select');
   paymentMethod = signal<'upi' | 'cod' | 'netbanking'>('upi');
 
+  // View state
+  viewMode = signal<'grid' | 'list'>('grid');
+
   // Customer
   customerName = signal('');
   customerPhone = signal('');
