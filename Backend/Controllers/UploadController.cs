@@ -16,15 +16,28 @@ namespace Backend.Controllers
             _config = config;
         }
 
+        private bool IsMcpOrUserAuthorized()
+        {
+            var apiKey = Request.Headers["X-MCP-API-KEY"].ToString();
+            var configApiKey = _config["McpApiKey"];
+            if (!string.IsNullOrEmpty(apiKey) && apiKey == configApiKey)
+            {
+                return true;
+            }
+            return User.Identity?.IsAuthenticated ?? false;
+        }
+
         /// <summary>
         /// POST api/upload/image
         /// Accepts a multipart/form-data file upload, stores it under wwwroot/uploads/,
         /// and returns the publicly accessible URL.
         /// </summary>
-        [Authorize]
+        [AllowAnonymous]
         [HttpPost("image")]
         public async Task<IActionResult> UploadImage(IFormFile file)
         {
+            if (!IsMcpOrUserAuthorized()) return Unauthorized("Invalid API Key or Not Authenticated");
+
             if (file == null || file.Length == 0)
                 return BadRequest(new { error = "No file provided." });
 

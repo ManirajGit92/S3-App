@@ -19,6 +19,18 @@ namespace Backend.Controllers
             _configuration = configuration;
         }
 
+        private bool IsMcpOrUserAuthorized()
+        {
+            var apiKey = Request.Headers["X-MCP-API-KEY"].ToString();
+            var configApiKey = _configuration["McpApiKey"];
+            if (!string.IsNullOrEmpty(apiKey) && apiKey == configApiKey)
+            {
+                return true; // MCP is fully authorized
+            }
+            // Fallback to strict User Authorization
+            return User.Identity?.IsAuthenticated ?? false;
+        }
+
         // GET api/product/webpage/{webpageId}?search=...&sort=...
         [HttpGet("webpage/{webpageId}")]
         public async Task<IActionResult> GetProducts(int webpageId, [FromQuery] string search = "", [FromQuery] string sort = "")
@@ -50,16 +62,9 @@ namespace Backend.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateProduct([FromBody] Product product)
         {
-            // Allow API Key for MCP or check Authorize
-            var apiKey = Request.Headers["X-MCP-API-KEY"].ToString();
-            var configApiKey = _configuration["McpApiKey"];
-            
-            if (string.IsNullOrEmpty(apiKey) || apiKey != configApiKey)
+            if (!IsMcpOrUserAuthorized())
             {
-                if (!User.Identity?.IsAuthenticated ?? true)
-                {
-                    return Unauthorized("Invalid API Key or Not Authenticated");
-                }
+                return Unauthorized("Invalid API Key or Not Authenticated");
             }
 
             // Validation user owns webpage omitted for brevity, assuming WebpageId is valid
@@ -68,10 +73,12 @@ namespace Backend.Controllers
             return Ok(product);
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product updatedProduct)
         {
+            if (!IsMcpOrUserAuthorized()) return Unauthorized("Invalid API Key or Not Authenticated");
+
             var product = await _context.Products.FindAsync(id);
             if (product == null) return NotFound();
 
@@ -88,10 +95,12 @@ namespace Backend.Controllers
             return Ok(product);
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
+            if (!IsMcpOrUserAuthorized()) return Unauthorized("Invalid API Key or Not Authenticated");
+
             var product = await _context.Products.FindAsync(id);
             if (product == null) return NotFound();
 
@@ -100,10 +109,12 @@ namespace Backend.Controllers
             return Ok(new { message = "Product deleted" });
         }
 
-        [Authorize]
+        [AllowAnonymous]
         [HttpDelete("all/{webpageId}")]
         public async Task<IActionResult> DeleteAllProducts(int webpageId)
         {
+            if (!IsMcpOrUserAuthorized()) return Unauthorized("Invalid API Key or Not Authenticated");
+
             var products = await _context.Products.Where(p => p.WebpageId == webpageId).ToListAsync();
             var count = products.Count;
             
@@ -163,16 +174,9 @@ namespace Backend.Controllers
         [HttpPost("bulk")]
         public async Task<IActionResult> BulkCreateProducts([FromBody] List<Product> products)
         {
-            // Allow API Key for MCP or check Authorize
-            var apiKey = Request.Headers["X-MCP-API-KEY"].ToString();
-            var configApiKey = _configuration["McpApiKey"];
-            
-            if (string.IsNullOrEmpty(apiKey) || apiKey != configApiKey)
+            if (!IsMcpOrUserAuthorized())
             {
-                if (!User.Identity?.IsAuthenticated ?? true)
-                {
-                    return Unauthorized("Invalid API Key or Not Authenticated");
-                }
+                return Unauthorized("Invalid API Key or Not Authenticated");
             }
 
             if (products == null || products.Count == 0) return BadRequest("No products provided.");
