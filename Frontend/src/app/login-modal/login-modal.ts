@@ -1,5 +1,4 @@
 import { Component, EventEmitter, Output, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Api } from '../api';
 import { SettingsService } from '../services/settings.service';
@@ -7,7 +6,7 @@ import { SettingsService } from '../services/settings.service';
 @Component({
   selector: 'app-login-modal',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [CommonModule],
   templateUrl: './login-modal.html',
   styleUrl: './login-modal.css',
 })
@@ -15,25 +14,17 @@ export class LoginModal {
   @Output() loginSuccess = new EventEmitter<any>();
   @Output() close = new EventEmitter<void>();
 
-  private fb = inject(FormBuilder);
   private api = inject(Api);
   settings = inject(SettingsService);
 
   errorMessage = signal('');
   isLoading = signal(false);
 
-  loginForm = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-  });
-
-  onSubmit() {
-    if (this.loginForm.invalid) return;
+  onSocialLogin(provider: 'google' | 'github') {
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    const val = this.loginForm.value;
-    this.api.login({ email: val.email, password: val.password }).subscribe({
+    this.api.socialLogin(provider).subscribe({
       next: (res) => {
         this.isLoading.set(false);
         localStorage.setItem('token', res.token);
@@ -42,7 +33,7 @@ export class LoginModal {
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.errorMessage.set(err.error?.message || err.error || 'Authentication failed');
+        this.errorMessage.set(err.error?.message || err.error || `${provider} login failed`);
       },
     });
   }

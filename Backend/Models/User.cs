@@ -21,6 +21,8 @@ namespace Backend.Models
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
 
+        public string AuthProvider { get; set; } = "local"; // local, google, github
+
         public Guid WebpageUniqueId { get; set; } = Guid.NewGuid();
 
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;

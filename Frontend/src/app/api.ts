@@ -26,8 +26,8 @@ export class Api {
     return this.http.post(`${this.apiUrl}/auth/login`, data);
   }
 
-  socialLogin(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/auth/social-login`, data);
+  socialLogin(provider: 'google' | 'github'): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auth/social-login`, { provider });
   }
 
   // Webpage

@@ -29,6 +29,13 @@ namespace Backend.Controllers
             public string Email { get; set; } = string.Empty;
             public string Password { get; set; } = string.Empty;
             public string Username { get; set; } = string.Empty;
+            public string Provider { get; set; } = string.Empty;
+        }
+
+        public class SocialAuthRequest
+        {
+            public string Provider { get; set; } = string.Empty;
+            public string IdToken { get; set; } = string.Empty;
         }
 
         [HttpPost("register")]
@@ -74,15 +81,25 @@ namespace Backend.Controllers
         [HttpPost("social-login")]
         public async Task<IActionResult> SocialLogin([FromBody] AuthRequest request)
         {
-            // Mock social login
-            var user = await _context.Users.Include(u => u.Webpage).FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (string.IsNullOrEmpty(request.Provider))
+                return BadRequest("Provider is required");
+
+            // In a real scenario, you would validate the OAuth token with the provider
+            // For now, we'll generate a mock email based on the provider and timestamp
+            string email = GenerateSocialEmail(request.Provider);
+            string username = $"{request.Provider}_user";
+
+            var user = await _context.Users.Include(u => u.Webpage).FirstOrDefaultAsync(u => u.Email == email);
+            
             if (user == null)
             {
+                // Create new user for social login
                 user = new User
                 {
-                    Email = request.Email,
-                    Username = string.IsNullOrEmpty(request.Username) ? request.Email : request.Username,
-                    PasswordHash = HashPassword(Guid.NewGuid().ToString()), // random pass
+                    Email = email,
+                    Username = username,
+                    PasswordHash = HashPassword(Guid.NewGuid().ToString()), // random password for OAuth users
+                    AuthProvider = request.Provider
                 };
                 var webpage = new Webpage { User = user };
                 _context.Users.Add(user);
@@ -91,10 +108,19 @@ namespace Backend.Controllers
             }
 
             user.LastLoginDate = DateTime.UtcNow;
+            user.AuthProvider = request.Provider;
             await _context.SaveChangesAsync();
 
             var token = GenerateJwtToken(user);
             return Ok(new { token, user.Username, user.Email, WebpageId = user.Webpage?.Id, UniqueId = user.WebpageUniqueId });
+        }
+
+        private string GenerateSocialEmail(string provider)
+        {
+            // Generate a consistent email for the social provider
+            // In production, this would be obtained from the OAuth provider's token
+            var timestamp = DateTime.UtcNow.Ticks;
+            return $"{provider}_user_{timestamp}@oauth.local";
         }
 
         [Authorize]
